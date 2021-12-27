@@ -1,0 +1,25 @@
+{
+  "name": "video-upscale",
+  "version": "0.1.0",
+  "description": "Upscale HTML5 Video using WebGL",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mad-gooze/video-upscale.git"
+  },
+  "keywords": [
+    "video",
+    "webgl",
+    "upscale",
+    "lanczos"
+  ],
+  "author": "Alexey Gusev <mad.gooze@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mad-gooze/video-upscale/issues"
+  },
+  "homepage": "https://github.com/mad-gooze/video-upscale#readme"
+}
