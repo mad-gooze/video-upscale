@@ -1,0 +1,14 @@
+.prettierrc.js
+.eslintrc.js
+jest.config.js
+tsconfig.json
+example/
+coverage/
+lib/
+dist/tsconfig.tsbuildinfo
+.eslintcache
+.github/
+babel.config.js
+index.ts
+*.test.d.ts
+*.test.js

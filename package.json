@@ -4,7 +4,12 @@
   "description": "Upscale HTML5 Video using WebGL",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+      "clean": "rimraf dist/ && rimraf coverage",
+      "build": "tsc",
+      "test": "jest",
+      "prepublish": "npm run clean && npm run build",
+      "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --cache",
+      "lint:fix": "npm run lint -- --fix"
   },
   "repository": {
     "type": "git",
@@ -21,5 +26,18 @@
   "bugs": {
     "url": "https://github.com/mad-gooze/video-upscale/issues"
   },
-  "homepage": "https://github.com/mad-gooze/video-upscale#readme"
+  "homepage": "https://github.com/mad-gooze/video-upscale#readme",
+  "devDependencies": {
+    "@babel/preset-env": "^7.16.5",
+    "@babel/preset-typescript": "^7.16.5",
+    "@types/jest": "^27.0.3",
+    "@typescript-eslint/eslint-plugin": "^5.8.0",
+    "@typescript-eslint/parser": "^5.8.0",
+    "eslint": "^8.5.0",
+    "eslint-config-prettier": "^8.3.0",
+    "jest": "^27.4.5",
+    "prettier": "^2.5.1",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.5.4"
+  }
 }
