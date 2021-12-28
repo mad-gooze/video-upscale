@@ -7,7 +7,7 @@
         "clean": "rimraf dist/ && rimraf coverage",
         "build": "npm run build:glsl && npm run build:ts",
         "build:ts": "tsc",
-        "build:glsl": "webpack-glsl-minify 'lib/shaders/*.glsl' --output source --esModule -e '.ts'",
+        "build:glsl": "webpack-glsl-minify 'lib/shaders/*.glsl' --output source --esModule -e '.ts' --nomangle texture a_position a_texCoord",
         "test": "jest",
         "prepublish": "npm run clean && npm run build",
         "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --cache",
