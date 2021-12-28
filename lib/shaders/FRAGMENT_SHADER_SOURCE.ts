@@ -1,8 +1,7 @@
 /**
  * @internal
  */
-export const FRAGMENT_SHADER_SOURCE = `
-#version 300 es
+export const FRAGMENT_SHADER_SOURCE = `#version 300 es
 
 // fragment shaders don't have a default precision so we need
 // to pick one. highp is a good default. It means "high precision"
