@@ -4,12 +4,12 @@
   "description": "Upscale HTML5 Video using WebGL",
   "main": "dist/index.js",
   "scripts": {
-      "clean": "rimraf dist/ && rimraf coverage",
-      "build": "tsc",
-      "test": "jest",
-      "prepublish": "npm run clean && npm run build",
-      "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --cache",
-      "lint:fix": "npm run lint -- --fix"
+    "clean": "rimraf dist/ && rimraf coverage",
+    "build": "tsc",
+    "test": "jest",
+    "prepublish": "npm run clean && npm run build",
+    "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --cache",
+    "lint:fix": "npm run lint -- --fix"
   },
   "repository": {
     "type": "git",
@@ -35,6 +35,7 @@
     "@typescript-eslint/parser": "^5.8.0",
     "eslint": "^8.5.0",
     "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
     "jest": "^27.4.5",
     "prettier": "^2.5.1",
     "rimraf": "^3.0.2",
