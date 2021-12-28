@@ -1,6 +1,6 @@
-import { FRAGMENT_SHADER_SOURCE } from './FRAGMENT_SHADER_SOURCE';
+import { FRAGMENT_SHADER_SOURCE } from './shaders/FRAGMENT_SHADER_SOURCE';
 import { inscribeToRatio } from './inscribeToRatio';
-import { VERTEX_SHADER_SOURCE } from './VERTEX_SHADER_SOURCE';
+import { VERTEX_SHADER_SOURCE } from './shaders/VERTEX_SHADER_SOURCE';
 
 export type VideoUpscalerProps = {
     video: HTMLVideoElement;

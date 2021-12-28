@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export const FRAGMENT_SHADER_SOURCE = `
 #version 300 es
 

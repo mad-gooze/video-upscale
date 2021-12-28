@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export const VERTEX_SHADER_SOURCE = `
 #version 300 es
 
