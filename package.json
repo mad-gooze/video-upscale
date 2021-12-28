@@ -1,48 +1,48 @@
 {
-  "name": "video-upscale",
-  "version": "0.1.1",
-  "description": "Upscale HTML5 Video using WebGL",
-  "main": "dist/index.js",
-  "scripts": {
-    "clean": "rimraf dist/ && rimraf coverage",
-    "build": "npm run build:glsl && npm run build:ts",
-    "build:ts": "tsc",
-    "build:glsl": "webpack-glsl-minify 'lib/shaders/*.glsl' --output source --esModule -e '.ts'",
-    "test": "jest",
-    "prepublish": "npm run clean && npm run build",
-    "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --cache",
-    "lint:fix": "npm run lint -- --fix"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mad-gooze/video-upscale.git"
-  },
-  "keywords": [
-    "video",
-    "webgl",
-    "upscale",
-    "lanczos"
-  ],
-  "author": "Alexey Gusev <mad.gooze@gmail.com>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/mad-gooze/video-upscale/issues"
-  },
-  "homepage": "https://github.com/mad-gooze/video-upscale#readme",
-  "devDependencies": {
-    "@babel/preset-env": "^7.16.5",
-    "@babel/preset-typescript": "^7.16.5",
-    "@types/jest": "^27.0.3",
-    "@typescript-eslint/eslint-plugin": "^5.8.0",
-    "@typescript-eslint/parser": "^5.8.0",
-    "eslint": "^8.5.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-prettier": "^4.0.0",
-    "jest": "^27.4.5",
-    "parcel": "^2.0.1",
-    "prettier": "^2.5.1",
-    "rimraf": "^3.0.2",
-    "typescript": "^4.5.4",
-    "webpack-glsl-minify": "^1.4.2"
-  }
+    "name": "video-upscale",
+    "version": "0.1.1",
+    "description": "Upscale HTML5 Video using WebGL",
+    "main": "dist/index.js",
+    "scripts": {
+        "clean": "rimraf dist/ && rimraf coverage",
+        "build": "npm run build:glsl && npm run build:ts",
+        "build:ts": "tsc",
+        "build:glsl": "webpack-glsl-minify 'lib/shaders/*.glsl' --output source --esModule -e '.ts'",
+        "test": "jest",
+        "prepublish": "npm run clean && npm run build",
+        "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --cache",
+        "lint:fix": "npm run lint -- --fix"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/mad-gooze/video-upscale.git"
+    },
+    "keywords": [
+        "video",
+        "webgl",
+        "upscale",
+        "lanczos"
+    ],
+    "author": "Alexey Gusev <mad.gooze@gmail.com>",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/mad-gooze/video-upscale/issues"
+    },
+    "homepage": "https://github.com/mad-gooze/video-upscale#readme",
+    "devDependencies": {
+        "@babel/preset-env": "^7.16.5",
+        "@babel/preset-typescript": "^7.16.5",
+        "@types/jest": "^27.0.3",
+        "@typescript-eslint/eslint-plugin": "^5.8.0",
+        "@typescript-eslint/parser": "^5.8.0",
+        "eslint": "^8.5.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "jest": "^27.4.5",
+        "parcel": "^2.0.1",
+        "prettier": "^2.5.1",
+        "rimraf": "^3.0.2",
+        "typescript": "^4.5.4",
+        "webpack-glsl-minify": "^1.4.2"
+    }
 }

@@ -1,6 +1,6 @@
 /**
  * Detects if requestVideoFrameCallback is supported
- * 
+ *
  * @internal
  */
 export function detectRequestVideoFrameCallback(): boolean {

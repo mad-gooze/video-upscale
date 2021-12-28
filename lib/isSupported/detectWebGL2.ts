@@ -1,6 +1,6 @@
 /**
  * Detects if WebGL2 is supported
- * 
+ *
  * @internal
  */
 export function detectWebGL2(): boolean {

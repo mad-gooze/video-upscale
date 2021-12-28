@@ -1,6 +1,6 @@
 /**
  * Returns rect size with a given ratio inscribed in a given rect
- * 
+ *
  * @internal
  */
 export function inscribeToRatio(

@@ -36,7 +36,7 @@ export class VideoUpscaler {
                 return;
             }
             this.planNextRender();
-        })
+        });
 
         this.observer = new ResizeObserver(([{ contentRect }]) => {
             this.videoTagWidth = contentRect.width * devicePixelRatio;
@@ -222,7 +222,10 @@ export class VideoUpscaler {
         this.canvasHidden = false;
     }
 
-    private setGlViewportSize({ width, height }: Pick<DOMRect, 'width' | 'height'>): void {
+    private setGlViewportSize({
+        width,
+        height,
+    }: Pick<DOMRect, 'width' | 'height'>): void {
         const { gl } = this;
         // Tell WebGL how to convert from clip space to pixels
         gl.viewport(0, 0, width, height);
@@ -264,7 +267,10 @@ export class VideoUpscaler {
             videoWidth / videoHeight,
         );
 
-        if (canvas.width !== videoSize.width || canvas.height !== videoSize.height) {
+        if (
+            canvas.width !== videoSize.width ||
+            canvas.height !== videoSize.height
+        ) {
             canvas.width = videoSize.width;
             canvas.height = videoSize.height;
             this.setGlViewportSize(videoSize);
@@ -288,10 +294,12 @@ export class VideoUpscaler {
         }
 
         this.planNextRender();
-    }
+    };
 
     private planNextRender = () => {
-        this.nextRFCHandle = this.video.requestVideoFrameCallback(this.renderFrame);
+        this.nextRFCHandle = this.video.requestVideoFrameCallback(
+            this.renderFrame,
+        );
     };
 
     public enable(): void {
