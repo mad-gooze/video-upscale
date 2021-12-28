@@ -19,14 +19,18 @@ const upscaler = initVideoUpscaler({
 
         const delta = (now - lastCalledTime) / 1000;
         lastCalledTime = now;
-        fps = fps * 0.9 + 0.1 * 1 / delta;
+        fps = fps * 0.9 + (0.1 * 1) / delta;
         // console.log(fps);
-
-        if (video.currentTime > 3) video.pause();
     },
 });
 
 window.upscaler = upscaler;
 upscaler.enable();
 
-video.play()
+video.play();
+
+canvas.onmousedown = () => {
+    canvas.style.opacity = 0;
+    document.documentElement.onmouseup = () =>
+        (canvas.style.opacity = 0.999999);
+};
