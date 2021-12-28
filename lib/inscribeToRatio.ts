@@ -7,21 +7,19 @@ export function inscribeToRatio(
     rect: Pick<DOMRect, 'width' | 'height'>,
     desiredRatio: number,
 ) {
-    const ratio = rect.width / rect.height;
+    const { width, height } = rect;
+    const ratio = width / height;
 
-    if (desiredRatio === ratio) {
-        return rect;
-    } else if (desiredRatio > ratio) {
-        // inscribe horizontally
+    if (desiredRatio > ratio) {
+        // вписываем по горизонтали
         return {
-            width: rect.width,
-            height: rect.width / desiredRatio,
-        };
-    } else {
-        // inscribe vertically
-        return {
-            width: rect.height * desiredRatio,
-            height: rect.height,
+            width,
+            height: width / desiredRatio,
         };
     }
+    // вписываем по вертикали
+    return {
+        width: height * desiredRatio,
+        height,
+    };
 }

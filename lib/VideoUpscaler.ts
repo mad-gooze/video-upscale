@@ -25,10 +25,20 @@ export class VideoUpscaler {
     constructor({ video, canvas, onFrameRendered }: VideoUpscalerProps) {
         this.video = video;
         this.canvas = canvas;
+        canvas.style.visibility = 'hidden';
         this.onFrameRendered = onFrameRendered;
 
+        this.video.addEventListener('timeupdate', () => {
+            if (!this.video.paused) {
+                return;
+            }
+            this.cancelNextFrame();
+            this.renderFrame();
+        })
+
         this.observer = new ResizeObserver(([{ contentRect }]) => {
-            this.videoTagWidth = contentRect.width;
+            this.videoTagWidth = contentRect.width * devicePixelRatio;
+            this.videoTagHeight = contentRect.height * devicePixelRatio;
         });
         this.observer.observe(video);
 
@@ -184,8 +194,8 @@ export class VideoUpscaler {
         let { videoTagWidth: width, videoTagHeight: height } = this;
         if (width === undefined || height === undefined) {
             const videoRect = this.video.getBoundingClientRect();
-            width = this.videoTagWidth = videoRect.width;
-            height = this.videoTagHeight = videoRect.height;
+            width = this.videoTagWidth = videoRect.width * devicePixelRatio;
+            height = this.videoTagHeight = videoRect.height * devicePixelRatio;
         }
 
         return {
@@ -196,46 +206,46 @@ export class VideoUpscaler {
 
     private renderFrame(): void {
         const { video, gl, canvas } = this;
-        const { videoWidth, videoHeight } = video;
-        if (videoWidth <= 0 || videoHeight <= 0) {
+        const { videoWidth, videoHeight, readyState } = video;
+        if (videoWidth <= 0 || videoHeight <= 0 || readyState < 2) {
             return;
         }
 
-        if (canvas.height !== videoHeight || canvas.width !== videoWidth) {
-            const videoRatio = videoWidth / videoHeight;
-            const videoSize = inscribeToRatio(
-                this.getVideoTagSize(),
-                videoRatio,
-            );
+        const videoSize = inscribeToRatio(
+            this.getVideoTagSize(),
+            videoWidth / videoHeight,
+        );
 
+        if (canvas.width !== videoSize.width) {
             canvas.width = videoSize.width;
-            canvas.height = videoSize.height;
-
-            // Tell WebGL how to convert from clip space to pixels
-            gl.viewport(0, 0, canvas.width, canvas.height);
-
-            // Pass in the canvas resolution so we can convert from pixels to clipspace in the shader
-            gl.uniform2f(this.resolutionLocation, canvas.width, canvas.height);
-
-            gl.bufferData(
-                gl.ARRAY_BUFFER,
-                new Float32Array([
-                    0,
-                    0,
-                    canvas.width,
-                    0,
-                    0,
-                    canvas.height,
-                    0,
-                    canvas.height,
-                    canvas.width,
-                    0,
-                    canvas.width,
-                    canvas.height,
-                ]),
-                gl.STATIC_DRAW,
-            );
         }
+        if (canvas.height !== videoSize.height) {
+            canvas.height = videoSize.height;
+        }
+        
+        // Tell WebGL how to convert from clip space to pixels
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        // Pass in the canvas resolution so we can convert from pixels to clipspace in the shader
+        gl.uniform2f(this.resolutionLocation, canvas.width, canvas.height);
+
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+                0,
+                0,
+                canvas.width,
+                0,
+                0,
+                canvas.height,
+                0,
+                canvas.height,
+                canvas.width,
+                0,
+                canvas.width,
+                canvas.height,
+            ]),
+            gl.STATIC_DRAW,
+        );
 
         gl.texImage2D(
             gl.TEXTURE_2D,
@@ -247,6 +257,8 @@ export class VideoUpscaler {
         );
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.flush();
+
+        canvas.style.visibility = 'visible';
 
         if (this.onFrameRendered !== undefined) {
             this.onFrameRendered();
@@ -264,11 +276,15 @@ export class VideoUpscaler {
         this.planNextRender();
     }
 
-    public disable(): void {
+    private cancelNextFrame(): void {
         if (this.nextCallbackHandle === undefined) {
             return;
         }
         this.video.cancelVideoFrameCallback(this.nextCallbackHandle);
+    }
+
+    public disable(): void {
+        this.cancelNextFrame();
         this.nextCallbackHandle = undefined;
     }
 }
