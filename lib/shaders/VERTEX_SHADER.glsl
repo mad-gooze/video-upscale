@@ -1,7 +1,4 @@
-/**
- * @internal
- */
-export const VERTEX_SHADER_SOURCE = `#version 300 es
+#version 300 es
 
 // an attribute is an input (in) to a vertex shader.
 // It will receive data from a buffer
@@ -32,4 +29,3 @@ void main() {
   // The GPU will interpolate this value between points.
   v_texCoord = a_texCoord;
 }
-`;

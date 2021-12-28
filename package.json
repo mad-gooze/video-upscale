@@ -5,7 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "clean": "rimraf dist/ && rimraf coverage",
-    "build": "tsc",
+    "build": "npm run build:glsl && npm run build:ts",
+    "build:ts": "tsc",
+    "build:glsl": "webpack-glsl-minify 'lib/shaders/*.glsl' --output source --esModule -e '.ts'",
     "test": "jest",
     "prepublish": "npm run clean && npm run build",
     "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --cache",
@@ -40,6 +42,7 @@
     "parcel": "^2.0.1",
     "prettier": "^2.5.1",
     "rimraf": "^3.0.2",
-    "typescript": "^4.5.4"
+    "typescript": "^4.5.4",
+    "webpack-glsl-minify": "^1.4.2"
   }
 }

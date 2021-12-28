@@ -1,7 +1,4 @@
-/**
- * @internal
- */
-export const FRAGMENT_SHADER_SOURCE = `#version 300 es
+#version 300 es
 
 // fragment shaders don't have a default precision so we need
 // to pick one. highp is a good default. It means "high precision"
@@ -16,20 +13,25 @@ in vec2 v_texCoord;
 // we need to declare an output for the fragment shader
 out vec4 outColor;
 
-#define M_PI 3.1415926535897932384626433832795
+@define PI 3.141592653589
 
 vec3 weight(float a) {
-    vec3 s = max(abs(2.0 * M_PI * vec3(a - 1.5, a - 0.5, a + 0.5)), 1e-5);
+    vec3 s = max(abs(2.0 * PI * vec3(a - 1.5, a - 0.5, a + 0.5)), 1e-5);
     return sin(s) * sin(s / 3.0) / (s * s);
 }
 
 vec3 lum(sampler2D tex, vec3 x1, vec3 x2, float y, vec3 y1, vec3 y2)
 {
-    #define TEX(a) texture(tex, vec2(a, y)).rgb
-
-    return
-        mat3(TEX(x1.r), TEX(x1.g), TEX(x1.b)) * y1 +
-        mat3(TEX(x2.r), TEX(x2.g), TEX(x2.b)) * y2;
+    return mat3(
+        texture(tex, vec2(x1.r, y)).rgb, 
+        texture(tex, vec2(x1.g, y)).rgb, 
+        texture(tex, vec2(x1.b, y)).rgb
+    ) * y1 +
+    mat3(
+        texture(tex, vec2(x2.r, y)).rgb, 
+        texture(tex, vec2(x2.g, y)).rgb, 
+        texture(tex, vec2(x2.b, y)).rgb
+    ) * y2;
 }
 
 vec3 lanczos(sampler2D tex, vec2 coord) {
@@ -60,18 +62,20 @@ vec3 lanczos(sampler2D tex, vec2 coord) {
     vec3 py1 = vec3(pos.y - stp.y * 2.0, pos.y, pos.y + stp.y * 2.0);
     vec3 py2 = vec3(pos.y - stp.y, pos.y + stp.y, pos.y + stp.y * 3.0);
 
-    #define LUM(a) lum(tex, px1, px2, a, y1, y2)
-
     return
-        LUM(py1.r) * x1.r +
-        LUM(py1.g) * x1.g +
-        LUM(py1.b) * x1.b +
-        LUM(py2.r) * x2.r +
-        LUM(py2.g) * x2.g +
-        LUM(py2.b) * x2.b;
+        lum(tex, px1, px2, py1.r, y1, y2) * x1.r +
+        lum(tex, px1, px2, py1.g, y1, y2) * x1.g +
+        lum(tex, px1, px2, py1.b, y1, y2) * x1.b +
+        lum(tex, px1, px2, py2.r, y1, y2) * x2.r +
+        lum(tex, px1, px2, py2.g, y1, y2) * x2.g +
+        lum(tex, px1, px2, py2.b, y1, y2) * x2.b;
 }
 
+@define GAMMA 1.11
 void main() {
+    // outColor = texture(u_image, v_texCoord);
     outColor = vec4(lanczos(u_image, v_texCoord), 1.0);
+
+    // apply gamma correction
+    // outColor.rgb = pow(outColor.rgb, vec3(1.0/GAMMA));
 }
-`;

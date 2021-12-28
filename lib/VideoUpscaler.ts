@@ -1,6 +1,6 @@
-import { FRAGMENT_SHADER_SOURCE } from './shaders/FRAGMENT_SHADER_SOURCE';
+import FRAGMENT_SHADER_SOURCE from './shaders/FRAGMENT_SHADER.glsl';
 import { inscribeToRatio } from './inscribeToRatio';
-import { VERTEX_SHADER_SOURCE } from './shaders/VERTEX_SHADER_SOURCE';
+import VERTEX_SHADER_SOURCE from './shaders/VERTEX_SHADER.glsl';
 
 export type VideoUpscalerProps = {
     video: HTMLVideoElement;
@@ -16,24 +16,26 @@ export class VideoUpscaler {
     private videoTagWidth: number | undefined;
     private videoTagHeight: number | undefined;
 
-    private nextCallbackHandle: number | undefined;
+    private nextRFCHandle: number | undefined;
 
     private video: HTMLVideoElement;
     private canvas: HTMLCanvasElement;
     private onFrameRendered?: () => any;
 
+    private canvasHidden: boolean | undefined;
+
     constructor({ video, canvas, onFrameRendered }: VideoUpscalerProps) {
         this.video = video;
         this.canvas = canvas;
-        canvas.style.visibility = 'hidden';
+        this.hideCanvas();
+
         this.onFrameRendered = onFrameRendered;
 
         this.video.addEventListener('timeupdate', () => {
             if (!this.video.paused) {
                 return;
             }
-            this.cancelNextFrame();
-            this.renderFrame();
+            this.planNextRender();
         })
 
         this.observer = new ResizeObserver(([{ contentRect }]) => {
@@ -82,15 +84,15 @@ export class VideoUpscaler {
             gl.deleteShader(vertexShader);
             gl.deleteShader(fragmentShader);
             gl.deleteProgram(program);
-            let errorMessage = 'Failed to link program';
-            if (programError !== null) {
-                errorMessage += `, programError: ${programError}`;
+            let errorMessage = 'Failed to link program\n';
+            if (programError) {
+                errorMessage += `programError: ${programError}\n`;
             }
-            if (vertexShaderError !== null) {
-                errorMessage += `, vertexShaderError: ${vertexShaderError}`;
+            if (vertexShaderError) {
+                errorMessage += `vertexShaderError: ${vertexShaderError}\n`;
             }
-            if (fragmentShaderError !== null) {
-                errorMessage += `, fragmentShaderError: ${fragmentShaderError}`;
+            if (fragmentShaderError) {
+                errorMessage += `fragmentShaderError: ${fragmentShaderError}\n`;
             }
             throw new Error(errorMessage);
         }
@@ -204,10 +206,56 @@ export class VideoUpscaler {
         };
     }
 
-    private renderFrame(): void {
+    private hideCanvas(): void {
+        if (this.canvasHidden === true) {
+            return;
+        }
+        this.canvas.style.visibility = 'hidden';
+        this.canvasHidden = true;
+    }
+
+    private showCanvas(): void {
+        if (this.canvasHidden === false) {
+            return;
+        }
+        this.canvas.style.visibility = 'visible';
+        this.canvasHidden = false;
+    }
+
+    private setGlViewportSize({ width, height }: Pick<DOMRect, 'width' | 'height'>): void {
+        const { gl } = this;
+        // Tell WebGL how to convert from clip space to pixels
+        gl.viewport(0, 0, width, height);
+        // Pass in the canvas resolution so we can convert from pixels to clip space in the shader
+        gl.uniform2f(this.resolutionLocation, width, height);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+                0,
+                0,
+                width,
+                0,
+                0,
+                height,
+                0,
+                height,
+                width,
+                0,
+                width,
+                height,
+            ]),
+            gl.STATIC_DRAW,
+        );
+    }
+
+    private renderFrame = () => {
+        this.cancelNextRender();
+
         const { video, gl, canvas } = this;
         const { videoWidth, videoHeight, readyState } = video;
         if (videoWidth <= 0 || videoHeight <= 0 || readyState < 2) {
+            this.hideCanvas();
+            this.planNextRender();
             return;
         }
 
@@ -216,36 +264,11 @@ export class VideoUpscaler {
             videoWidth / videoHeight,
         );
 
-        if (canvas.width !== videoSize.width) {
+        if (canvas.width !== videoSize.width || canvas.height !== videoSize.height) {
             canvas.width = videoSize.width;
-        }
-        if (canvas.height !== videoSize.height) {
             canvas.height = videoSize.height;
+            this.setGlViewportSize(videoSize);
         }
-        
-        // Tell WebGL how to convert from clip space to pixels
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        // Pass in the canvas resolution so we can convert from pixels to clipspace in the shader
-        gl.uniform2f(this.resolutionLocation, canvas.width, canvas.height);
-
-        gl.bufferData(
-            gl.ARRAY_BUFFER,
-            new Float32Array([
-                0,
-                0,
-                canvas.width,
-                0,
-                0,
-                canvas.height,
-                0,
-                canvas.height,
-                canvas.width,
-                0,
-                canvas.width,
-                canvas.height,
-            ]),
-            gl.STATIC_DRAW,
-        );
 
         gl.texImage2D(
             gl.TEXTURE_2D,
@@ -258,33 +281,35 @@ export class VideoUpscaler {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.flush();
 
-        canvas.style.visibility = 'visible';
+        this.showCanvas();
 
         if (this.onFrameRendered !== undefined) {
             this.onFrameRendered();
         }
-    }
 
-    private planNextRender = () => {
-        this.renderFrame();
-        this.nextCallbackHandle = this.video.requestVideoFrameCallback(() => {
-            this.planNextRender();
-        });
-    };
-
-    public enable(): void {
         this.planNextRender();
     }
 
-    private cancelNextFrame(): void {
-        if (this.nextCallbackHandle === undefined) {
+    private planNextRender = () => {
+        this.nextRFCHandle = this.video.requestVideoFrameCallback(this.renderFrame);
+    };
+
+    public enable(): void {
+        this.hideCanvas();
+        this.renderFrame();
+        this.planNextRender();
+    }
+
+    private cancelNextRender(): void {
+        if (this.nextRFCHandle === undefined) {
             return;
         }
-        this.video.cancelVideoFrameCallback(this.nextCallbackHandle);
+        this.video.cancelVideoFrameCallback(this.nextRFCHandle);
     }
 
     public disable(): void {
-        this.cancelNextFrame();
-        this.nextCallbackHandle = undefined;
+        this.hideCanvas();
+        this.cancelNextRender();
+        this.nextRFCHandle = undefined;
     }
 }
