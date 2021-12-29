@@ -5,7 +5,7 @@ import VERTEX_SHADER_SOURCE from './shaders/VERTEX_SHADER.glsl';
 export type VideoUpscalerProps = {
     video: HTMLVideoElement;
     canvas: HTMLCanvasElement;
-    onFrameRendered?: () => any;
+    onFrameRendered?: (params: { fps: number }) => any;
     targetFPS?: number;
 };
 
@@ -22,7 +22,7 @@ export class VideoUpscaler {
 
     private video: HTMLVideoElement;
     private canvas: HTMLCanvasElement;
-    private onFrameRendered?: () => any;
+    private onFrameRendered?: VideoUpscalerProps['onFrameRendered'];
 
     private canvasHidden: boolean | undefined;
 
@@ -344,16 +344,16 @@ export class VideoUpscaler {
         
         this.showCanvas();
 
-        if (this.onFrameRendered !== undefined) {
-            this.onFrameRendered();
-        }
-       
         if (this.prevFrameRenderTime >= 0 && !video.paused) {
             const delta = (now - this.prevFrameRenderTime) / 1000;
             this.fps = this.fps * 0.95 + (0.05 * 1) / delta;
             // console.log(this.fps/this.targetFPS);
         }
         this.prevFrameRenderTime = now;
+
+        if (this.onFrameRendered !== undefined) {
+            this.onFrameRendered({ fps: this.fps });
+        }
 
         this.planNextRender();
     };
