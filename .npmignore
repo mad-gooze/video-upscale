@@ -12,3 +12,5 @@ babel.config.js
 index.ts
 *.test.d.ts
 *.test.js
+.parcel-cache
+dist/shaders/*.glsl.d.ts
