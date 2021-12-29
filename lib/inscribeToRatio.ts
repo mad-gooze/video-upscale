@@ -20,12 +20,12 @@ export function inscribeToRatio(
         // inscribe horizontally
         return {
             width,
-            height: width / desiredRatio,
+            height: Math.round(width / desiredRatio),
         };
     }
     // inscribe vertically
     return {
-        width: height * desiredRatio,
+        width: Math.round(height * desiredRatio),
         height,
     };
 }

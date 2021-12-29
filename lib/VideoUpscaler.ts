@@ -6,10 +6,15 @@ export type VideoUpscalerProps = {
     video: HTMLVideoElement;
     canvas: HTMLCanvasElement;
     onFrameRendered?: (params: { fps: number }) => any;
+    onFPSDrop?: (params: { fps: number, targetFPS: number }) => any;
     targetFPS?: number;
+    fpsRatio?: number;
 };
 
+const noop = () => undefined;
+
 const DEFAULT_TARGET_FPS = 30;
+const DEFAULT_FPS_RATIO = 0.8;
 export class VideoUpscaler {
     private gl: WebGL2RenderingContext;
     private resolutionLocation: WebGLUniformLocation | null;
@@ -22,23 +27,27 @@ export class VideoUpscaler {
 
     private video: HTMLVideoElement;
     private canvas: HTMLCanvasElement;
-    private onFrameRendered?: VideoUpscalerProps['onFrameRendered'];
+    private onFrameRendered: Required<VideoUpscalerProps>['onFrameRendered'];
 
     private canvasHidden: boolean | undefined;
 
     private targetFPS: number;
     private fps = 0;
     private prevFrameRenderTime: DOMHighResTimeStamp = -1;
+    private onFPSDrop: Required<VideoUpscalerProps>['onFPSDrop'];
+    private fpsRatio: number;
 
     private destroyHandlers: Array<() => unknown> = [() => this.disable()];
     private destroyed = false;
 
-    constructor({ video, canvas, onFrameRendered, targetFPS = DEFAULT_TARGET_FPS }: VideoUpscalerProps) {
+    constructor({ video, canvas, onFrameRendered = noop, targetFPS = DEFAULT_TARGET_FPS, onFPSDrop = noop, fpsRatio = DEFAULT_FPS_RATIO }: VideoUpscalerProps) {
         try {
             this.video = video;
             this.canvas = canvas;
             this.onFrameRendered = onFrameRendered;
             this.targetFPS = targetFPS;
+            this.onFPSDrop = onFPSDrop;
+            this.fpsRatio = fpsRatio;
 
             this.hideCanvas();
 
@@ -347,14 +356,14 @@ export class VideoUpscaler {
         if (this.prevFrameRenderTime >= 0 && !video.paused) {
             const delta = (now - this.prevFrameRenderTime) / 1000;
             this.fps = this.fps * 0.95 + (0.05 * 1) / delta;
-            // console.log(this.fps/this.targetFPS);
+            if (this.fps / this.targetFPS < this.fpsRatio) {
+                // fps is too small, disable upscale
+                this.disable();
+                this.onFPSDrop({ fps: this.fps, targetFPS: this.targetFPS });
+            }
         }
         this.prevFrameRenderTime = now;
-
-        if (this.onFrameRendered !== undefined) {
-            this.onFrameRendered({ fps: this.fps });
-        }
-
+        this.onFrameRendered({ fps: this.fps });
         this.planNextRender();
     };
 
@@ -403,5 +412,18 @@ export class VideoUpscaler {
             }
         });
         this.destroyed = true;
+    }
+
+    public getFPS(): number {
+        return this.destroyed ? 0 : this.fps;
+    }
+
+    public setTargetFPS(targetFPS: number): void {
+        this.targetFPS = targetFPS;
+        this.clearFPSCounter();
+    }
+
+    public isActive(): boolean {
+        return !this.destroyed && this.canvasHidden === false;
     }
 }
