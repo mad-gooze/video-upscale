@@ -6,8 +6,10 @@ export type VideoUpscalerProps = {
     video: HTMLVideoElement;
     canvas: HTMLCanvasElement;
     onFrameRendered?: () => any;
+    targetFPS?: number;
 };
 
+const DEFAULT_TARGET_FPS = 30;
 export class VideoUpscaler {
     private gl: WebGL2RenderingContext;
     private resolutionLocation: WebGLUniformLocation | null;
@@ -24,9 +26,14 @@ export class VideoUpscaler {
 
     private canvasHidden: boolean | undefined;
 
-    constructor({ video, canvas, onFrameRendered }: VideoUpscalerProps) {
+    private targetFPS: number;
+    private fps: number;
+    private prevFrameRenderTime: DOMHighResTimeStamp | undefined;
+
+    constructor({ video, canvas, onFrameRendered, targetFPS = DEFAULT_TARGET_FPS }: VideoUpscalerProps) {
         this.video = video;
         this.canvas = canvas;
+        this.fps = this.targetFPS = targetFPS;
         this.hideCanvas();
 
         this.onFrameRendered = onFrameRendered;
@@ -206,10 +213,17 @@ export class VideoUpscaler {
         };
     }
 
+    private clearFPSCounter(): void {
+        this.fps = this.targetFPS;
+        this.prevFrameRenderTime = undefined;
+    }
+
     private hideCanvas(): void {
+        // cleanup current fps meter
         if (this.canvasHidden === true) {
             return;
         }
+        this.clearFPSCounter();
         this.canvas.style.visibility = 'hidden';
         this.canvasHidden = true;
     }
@@ -218,6 +232,7 @@ export class VideoUpscaler {
         if (this.canvasHidden === false) {
             return;
         }
+        this.clearFPSCounter();
         this.canvas.style.visibility = 'visible';
         this.canvasHidden = false;
     }
@@ -226,7 +241,9 @@ export class VideoUpscaler {
         width,
         height,
     }: Pick<DOMRect, 'width' | 'height'>): void {
-        const { gl } = this;
+        const { gl, canvas } = this;
+        canvas.width = width;
+        canvas.height = height;
         // Tell WebGL how to convert from clip space to pixels
         gl.viewport(0, 0, width, height);
         // Pass in the canvas resolution so we can convert from pixels to clip space in the shader
@@ -251,29 +268,42 @@ export class VideoUpscaler {
         );
     }
 
-    private renderFrame = () => {
+    private getVideoFrameSize(frameMetadata: VideoFrameMetadata | undefined): Pick<DOMRect, 'width' | 'height'> | undefined {
+        if (frameMetadata !== undefined) {
+            const { width, height } = frameMetadata;
+            return { width, height };
+        } 
+
+        if (this.video.readyState < 2) {
+            return undefined;
+        }
+        const { videoWidth, videoHeight } = this.video;
+        return { width: videoWidth, height: videoHeight };
+    }
+
+    private renderFrame = (now?: DOMHighResTimeStamp, frameMetadata?: VideoFrameMetadata) => {
         this.cancelNextRender();
 
         const { video, gl, canvas } = this;
-        const { videoWidth, videoHeight, readyState } = video;
-        if (videoWidth <= 0 || videoHeight <= 0 || readyState < 2) {
+        const videoFrameSize = this.getVideoFrameSize(frameMetadata);
+        if (videoFrameSize === undefined) {
             this.hideCanvas();
             this.planNextRender();
             return;
         }
 
-        const videoSize = inscribeToRatio(
+        now = now || performance.now();
+
+        const desiredFrameSize = inscribeToRatio(
             this.getVideoTagSize(),
-            videoWidth / videoHeight,
+            videoFrameSize,
         );
 
         if (
-            canvas.width !== videoSize.width ||
-            canvas.height !== videoSize.height
+            canvas.width !== desiredFrameSize.width ||
+            canvas.height !== desiredFrameSize.height
         ) {
-            canvas.width = videoSize.width;
-            canvas.height = videoSize.height;
-            this.setGlViewportSize(videoSize);
+            this.setGlViewportSize(desiredFrameSize);
         }
 
         gl.texImage2D(
@@ -287,11 +317,19 @@ export class VideoUpscaler {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.flush();
 
+        
         this.showCanvas();
 
         if (this.onFrameRendered !== undefined) {
             this.onFrameRendered();
         }
+       
+        if (this.prevFrameRenderTime !== undefined && !video.paused) {
+            const delta = (now - this.prevFrameRenderTime) / 1000;
+            this.fps = this.fps * 0.95 + (0.05 * 1) / delta;
+            console.log(this.fps/this.targetFPS);
+        }
+        this.prevFrameRenderTime = now;
 
         this.planNextRender();
     };
@@ -319,5 +357,15 @@ export class VideoUpscaler {
         this.hideCanvas();
         this.cancelNextRender();
         this.nextRFCHandle = undefined;
+    }
+
+    public destroy(): void {
+        this.disable();
+        this.observer.disconnect();
+        try {
+            this.gl.getExtension('WEBGL_lose_context')!.loseContext();
+        } catch {
+            //
+        }
     }
 }

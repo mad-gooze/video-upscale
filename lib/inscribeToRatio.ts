@@ -4,20 +4,26 @@
  * @internal
  */
 export function inscribeToRatio(
-    rect: Pick<DOMRect, 'width' | 'height'>,
-    desiredRatio: number,
+    outerRect: Pick<DOMRect, 'width' | 'height'>,
+    innerRect: Pick<DOMRect, 'width' | 'height'>,
 ) {
-    const { width, height } = rect;
+    const { width, height } = outerRect;
+    
+    const desiredRatio = innerRect.width / innerRect.height;
     const ratio = width / height;
 
+    if (innerRect.width === outerRect.width && innerRect.height === outerRect.height) {
+        return outerRect;
+    }
+
     if (desiredRatio > ratio) {
-        // вписываем по горизонтали
+        // inscribe horizontally
         return {
             width,
             height: width / desiredRatio,
         };
     }
-    // вписываем по вертикали
+    // inscribe vertically
     return {
         width: height * desiredRatio,
         height,
