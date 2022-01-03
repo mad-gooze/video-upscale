@@ -45,9 +45,10 @@ vec3 lanczos(sampler2D tex, vec2 coord) {
     vec3 x1 = weight(0.5 - f.y * 0.5);
     vec3 x2 = weight(1.0 - f.y * 0.5);
 
-    const vec3 one = vec3(1.0);
-    float xsum = dot(x1, one) + dot(x2, one);
-    float ysum = dot(y1, one) + dot(y2, one);
+    vec3 x = x1 + x2;
+    float xsum = x.x + x.y + x.z;
+    vec3 y = y1 + y2;
+    float ysum = y.x + y.y + y.z ;
     
     x1 /= xsum;
     x2 /= xsum;
