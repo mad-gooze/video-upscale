@@ -55,6 +55,7 @@ vec3 flidelityFX_CAS(sampler2D tex, vec2 coord) {
     float d_min_g = min_g;
     float d_max_g = 1.0 - max_g;
     float A;
+    max_g = max(0.0, max_g); 
     if (d_max_g < d_min_g) {
         A = d_max_g / max_g;
     } else {
