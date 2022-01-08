@@ -63,13 +63,15 @@ vec3 lanczos(sampler2D tex, vec2 coord) {
     vec3 py1 = vec3(pos.y - stp.y * 2.0, pos.y, pos.y + stp.y * 2.0);
     vec3 py2 = vec3(pos.y - stp.y, pos.y + stp.y, pos.y + stp.y * 3.0);
 
+    
+
     return
-        lum(tex, px1, px2, py1.r, y1, y2) * x1.r +
-        lum(tex, px1, px2, py1.g, y1, y2) * x1.g +
-        lum(tex, px1, px2, py1.b, y1, y2) * x1.b +
-        lum(tex, px1, px2, py2.r, y1, y2) * x2.r +
-        lum(tex, px1, px2, py2.g, y1, y2) * x2.g +
-        lum(tex, px1, px2, py2.b, y1, y2) * x2.b;
+        lum(tex, px1, px2, py1.x, y1, y2) * x1.x +
+        lum(tex, px1, px2, py1.y, y1, y2) * x1.y +
+        lum(tex, px1, px2, py1.z, y1, y2) * x1.z +
+        lum(tex, px1, px2, py2.x, y1, y2) * x2.x +
+        lum(tex, px1, px2, py2.y, y1, y2) * x2.y +
+        lum(tex, px1, px2, py2.z, y1, y2) * x2.z;
 }
 
 @define GAMMA 1.11
