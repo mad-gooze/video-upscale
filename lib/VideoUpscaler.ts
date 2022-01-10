@@ -12,13 +12,17 @@ export type VideoUpscalerProps = {
     fpsRatio?: number;
 };
 
+type Program = {
+    program: WebGLProgram;
+    setViewportSize: (size: Pick<DOMRect, 'width' | 'height'>) => void;
+}
+
 const noop = () => undefined;
 
 const DEFAULT_TARGET_FPS = 30;
 const DEFAULT_FPS_RATIO = 0.8;
 export class VideoUpscaler {
     private gl: WebGL2RenderingContext;
-    private resolutionLocation: WebGLUniformLocation | null;
 
     private observer: ResizeObserver;
     private videoTagWidth: number | undefined;
@@ -41,6 +45,8 @@ export class VideoUpscaler {
     private destroyHandlers: Array<() => unknown> = [() => this.disable()];
     private destroyed = false;
 
+    private resampleProgram: Program;
+
     constructor({ video, canvas, onFrameRendered = noop, targetFPS = DEFAULT_TARGET_FPS, onFPSDrop = noop, fpsRatio = DEFAULT_FPS_RATIO }: VideoUpscalerProps) {
         try {
             this.video = video;
@@ -60,51 +66,21 @@ export class VideoUpscaler {
             this.gl = gl;
             this.onDestroy(() => gl.getExtension('WEBGL_lose_context')!.loseContext());
 
-            const program = this.buildProgram(FRAGMENT_SHADER_SOURCE);
+           this.resampleProgram = this.buildProgram(FRAGMENT_SHADER_SOURCE);
 
-            // look up where the vertex data needs to go.
-            const positionAttributeLocation = gl.getAttribLocation(
-                program,
-                'a_position',
-            );
 
             // lookup uniforms
-            this.resolutionLocation = gl.getUniformLocation(
-                program,
-                'u_resolution',
-            );
-            const imageLocation = gl.getUniformLocation(program, 'u_image');
+            
+            // const imageLocation = gl.getUniformLocation(program, 'u_image');
 
-            // Create a buffer and put a single pixel space rectangle in
-            // it (2 triangles)
-            const positionBuffer = gl.createBuffer();
-            this.onDestroy(() => gl.deleteBuffer(positionBuffer));
 
-            // Turn on the attribute
-            gl.enableVertexAttribArray(positionAttributeLocation);
 
-            // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-            // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-            gl.vertexAttribPointer(
-                positionAttributeLocation,
-                2,
-                gl.FLOAT,
-                false,
-                0,
-                0,
-            );
 
             // Tell it to use our program (pair of shaders)
-            gl.useProgram(program);
+            gl.useProgram(this.resampleProgram.program);
 
             // Tell the shader to get the texture from texture unit 0
-            gl.uniform1i(imageLocation, 0);
-
-            // Bind the position buffer so gl.bufferData that will be called
-            // in setRectangle puts data in the position buffer
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            // gl.uniform1i(imageLocation, 0);
 
             this.observer = new ResizeObserver(([{ contentRect }]) => this.saveVideoTagSize(contentRect));
             this.observer.observe(video);
@@ -112,7 +88,7 @@ export class VideoUpscaler {
                 this.observer.disconnect();
             })
 
-            const onTimeupdate =  () => {
+            const onTimeupdate = () => {
                 if (!this.video.paused) {
                     return;
                 }
@@ -128,8 +104,8 @@ export class VideoUpscaler {
         }
     }
 
-    private buildProgram(fragmentShaderSource: string): WebGLProgram {
-        const { gl} = this;
+    private buildProgram(fragmentShaderSource: string): Program {
+        const { gl } = this;
         const program = gl.createProgram();
         this.onDestroy(() => gl.deleteProgram(program));
 
@@ -190,7 +166,7 @@ export class VideoUpscaler {
         gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer);
         gl.bufferData(
             gl.ARRAY_BUFFER,
-            createRect({ width: 1, height: 1}),
+            createRect({ width: 1, height: 1 }),
             gl.STATIC_DRAW,
         );
 
@@ -200,6 +176,33 @@ export class VideoUpscaler {
         // Tell the attribute how to get data out of texCoordBuffer (ARRAY_BUFFER)
         gl.vertexAttribPointer(
             texCoordAttributeLocation,
+            2,
+            gl.FLOAT,
+            false,
+            0,
+            0,
+        );
+
+        // look up where the vertex data needs to go.
+        const positionAttributeLocation = gl.getAttribLocation(
+            program,
+            'a_position',
+        );
+        // Turn on the attribute
+        gl.enableVertexAttribArray(positionAttributeLocation);
+
+        // Create a buffer and put a single pixel space rectangle in
+        // it (2 triangles)
+        const positionBuffer = gl.createBuffer();
+        this.onDestroy(() => gl.deleteBuffer(positionBuffer));
+
+
+        // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+        // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+        gl.vertexAttribPointer(
+            positionAttributeLocation,
             2,
             gl.FLOAT,
             false,
@@ -225,8 +228,25 @@ export class VideoUpscaler {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-
-        return program;
+        const resolutionLocation = gl.getUniformLocation(
+            program,
+            'u_resolution',
+        );
+        
+        return { 
+            program, 
+            setViewportSize: ({ width, height }: Pick<DOMRect, 'width' | 'height'>) => {
+                gl.viewport(0, 0, width, height);
+                // Pass in the canvas resolution so we can convert from pixels to clip space in the shader
+                gl.uniform2f(resolutionLocation, width, height);
+                gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                gl.bufferData(
+                    gl.ARRAY_BUFFER,
+                    createRect({ width, height }),
+                    gl.STATIC_DRAW,
+                );
+            }
+        };
     }
 
     private saveVideoTagSize({ width, height }: Pick<DOMRect, 'width' | 'height'>): void {
@@ -282,27 +302,12 @@ export class VideoUpscaler {
         }
     }
 
-    private setGLViewportSize({
-        width,
-        height,
-    }: Pick<DOMRect, 'width' | 'height'>): void {
-        const { gl } = this;
-        // Tell WebGL how to convert from clip space to pixels
-        gl.viewport(0, 0, width, height);
-        // Pass in the canvas resolution so we can convert from pixels to clip space in the shader
-        gl.uniform2f(this.resolutionLocation, width, height);
-        gl.bufferData(
-            gl.ARRAY_BUFFER,
-            createRect({ width, height }),
-            gl.STATIC_DRAW,
-        );
-    }
 
     private getVideoFrameSize(frameMetadata: VideoFrameMetadata | undefined): Pick<DOMRect, 'width' | 'height'> | undefined {
         if (frameMetadata !== undefined) {
             const { width, height } = frameMetadata;
             return { width, height };
-        } 
+        }
 
         if (this.video.readyState < 2) {
             return undefined;
@@ -333,7 +338,7 @@ export class VideoUpscaler {
             canvas.width !== desiredFrameSize.width ||
             canvas.height !== desiredFrameSize.height
         ) {
-            this.setGLViewportSize(desiredFrameSize);
+            this.resampleProgram.setViewportSize(desiredFrameSize);
         }
 
         this.setCanvasSize(desiredFrameSize);
@@ -349,7 +354,7 @@ export class VideoUpscaler {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.flush();
 
-        
+
         this.showCanvas();
 
         if (this.prevFrameRenderTime >= 0 && !video.paused) {
