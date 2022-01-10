@@ -27,3 +27,14 @@ body {
     background: black;
     color: white;
 }
+
+.controls {
+    position: fixed;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.controls button {
+    border-radius: 5px;
+}

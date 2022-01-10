@@ -270,13 +270,24 @@ export class VideoUpscaler {
         this.canvasHidden = false;
     }
 
+    private setCanvasSize({
+        width,
+        height,
+    }: Pick<DOMRect, 'width' | 'height'>): void {
+        const { canvas } = this;
+        if (canvas.width !== width) {
+            canvas.width = width;
+        }
+        if (canvas.height !== height) {
+            canvas.height = height;
+        }
+    }
+
     private setGLViewportSize({
         width,
         height,
     }: Pick<DOMRect, 'width' | 'height'>): void {
-        const { gl, canvas } = this;
-        canvas.width = width;
-        canvas.height = height;
+        const { gl } = this;
         // Tell WebGL how to convert from clip space to pixels
         gl.viewport(0, 0, width, height);
         // Pass in the canvas resolution so we can convert from pixels to clip space in the shader
@@ -338,6 +349,8 @@ export class VideoUpscaler {
         ) {
             this.setGLViewportSize(desiredFrameSize);
         }
+
+        this.setCanvasSize(desiredFrameSize);
 
         gl.texImage2D(
             gl.TEXTURE_2D,

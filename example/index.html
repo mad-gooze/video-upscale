@@ -9,14 +9,20 @@
 
     <body>
         <span id="info"></span>
-        <!-- <video muted id="video" crossorigin="anonymous" src="http://localhost:1235/bb-144p-1min.mp4"></video> -->
-        <!-- <video muted id="video" crossorigin="anonymous" src="http://localhost:1235/tears-of-steel-1080p-1min.mp4#t=10"></video> -->
-        <!-- <video muted id="video" crossorigin="anonymous" src="http://localhost:1235/tears-of-steel-144p-1min.mp4#t=1"></video> -->
-        <video muted id="video" crossorigin="anonymous" src="http://localhost:1235/news.mp4#t=17"></video>
-        <!-- <video muted id="video" crossorigin="anonymous" src="http://localhost:1235/tears-of-steel-240p-1min.mp4"></video> -->
-        <!-- <video muted id="video" crossorigin="anonymous" src="http://localhost:1235/bb-4k-1min.mp4#t=10"></video> -->
-        <!-- <video muted id="video" crossorigin="anonymous" src="video.mp4"></video> -->
+        <!-- <video loop muted id="video" crossorigin="anonymous" src="http://localhost:1235/bb-144p-1min.mp4"></video> -->
+        <!-- <video loop muted id="video" crossorigin="anonymous" src="http://localhost:1235/tears-of-steel-1080p-1min.mp4#t=10"></video> -->
+        <!-- <video loop muted id="video" crossorigin="anonymous" src="http://localhost:1235/tears-of-steel-144p-1min.mp4#t=1"></video> -->
+        <video loop muted id="video" crossorigin="anonymous" src="http://localhost:1235/news.mp4#t=17"></video>
+        <!-- <video loop muted id="video" crossorigin="anonymous" src="http://localhost:1235/tears-of-steel-240p-1min.mp4"></video> -->
+        <!-- <video loop muted id="video" crossorigin="anonymous" src="http://localhost:1235/bb-4k-1min.mp4#t=10"></video> -->
+        <!-- <video loop muted id="video" crossorigin="anonymous" src="video.mp4"></video> -->
         <canvas id="canvas"></canvas>
         <script src="index.js" type="module"></script>
+
+        <div class="controls">
+            <button id="reverseBtn">⏪</button>
+            <button id="playPauseBtn">⏯</button>
+            <button id="forwardBtn">⏩</button>
+        </div>
     </body>
 </html>

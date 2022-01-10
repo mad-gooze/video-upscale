@@ -34,3 +34,14 @@ canvas.onmousedown = () => {
     document.documentElement.onmouseup = () =>
         (canvas.style.opacity = 0.999999);
 };
+
+
+document.getElementById('reverseBtn').onclick = () => {
+    video.currentTime -= 5;
+};
+document.getElementById('forwardBtn').onclick = () => {
+    video.currentTime += 5;
+};
+document.getElementById('playPauseBtn').onclick = () => {
+    video.paused ? video.play() : video.pause();
+};
