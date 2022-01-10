@@ -79,13 +79,6 @@ export class VideoUpscaler {
             );
             const imageLocation = gl.getUniformLocation(program, 'u_image');
 
-            // Create a vertex array object (attribute state)
-            const vao = gl.createVertexArray();
-            this.onDestroy(() => gl.deleteVertexArray(vao));
-
-            // and make it the one we're currently working with
-            gl.bindVertexArray(vao);
-
             // Create a buffer and put a single pixel space rectangle in
             // it (2 triangles)
             const positionBuffer = gl.createBuffer();
@@ -132,9 +125,6 @@ export class VideoUpscaler {
 
             // Tell it to use our program (pair of shaders)
             gl.useProgram(program);
-
-            // Bind the attribute/buffer set we want.
-            gl.bindVertexArray(vao);
 
             // Tell the shader to get the texture from texture unit 0
             gl.uniform1i(imageLocation, 0);
