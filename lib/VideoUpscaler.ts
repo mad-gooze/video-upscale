@@ -67,10 +67,6 @@ export class VideoUpscaler {
                 program,
                 'a_position',
             );
-            const texCoordAttributeLocation = gl.getAttribLocation(
-                program,
-                'a_texCoord',
-            );
 
             // lookup uniforms
             this.resolutionLocation = gl.getUniformLocation(
@@ -93,29 +89,6 @@ export class VideoUpscaler {
             // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
             gl.vertexAttribPointer(
                 positionAttributeLocation,
-                2,
-                gl.FLOAT,
-                false,
-                0,
-                0,
-            );
-
-            // provide texture coordinates for the rectangle.
-            const arrayBuffer = gl.createBuffer();
-            this.onDestroy(() => gl.deleteBuffer(arrayBuffer));
-            gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer);
-            gl.bufferData(
-                gl.ARRAY_BUFFER,
-                createRect({ width: 1, height: 1}),
-                gl.STATIC_DRAW,
-            );
-
-            // Turn on the attribute
-            gl.enableVertexAttribArray(texCoordAttributeLocation);
-
-            // Tell the attribute how to get data out of texCoordBuffer (ARRAY_BUFFER)
-            gl.vertexAttribPointer(
-                texCoordAttributeLocation,
                 2,
                 gl.FLOAT,
                 false,
@@ -206,6 +179,33 @@ export class VideoUpscaler {
             }
             throw new Error(errorMessage);
         }
+
+        const texCoordAttributeLocation = gl.getAttribLocation(
+            program,
+            'a_texCoord',
+        );
+        // provide texture coordinates for the rectangle.
+        const arrayBuffer = gl.createBuffer();
+        this.onDestroy(() => gl.deleteBuffer(arrayBuffer));
+        gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            createRect({ width: 1, height: 1}),
+            gl.STATIC_DRAW,
+        );
+
+        // Turn on the attribute
+        gl.enableVertexAttribArray(texCoordAttributeLocation);
+
+        // Tell the attribute how to get data out of texCoordBuffer (ARRAY_BUFFER)
+        gl.vertexAttribPointer(
+            texCoordAttributeLocation,
+            2,
+            gl.FLOAT,
+            false,
+            0,
+            0,
+        );
 
         // Create a texture.
         const texture = gl.createTexture();
