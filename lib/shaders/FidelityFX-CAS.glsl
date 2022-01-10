@@ -51,6 +51,7 @@ vec3 flidelityFX_CAS(sampler2D tex, vec2 coord) {
 @define GAMMA 1.11
 void main() {
     outColor = vec4(flidelityFX_CAS(u_image, v_texCoord), 1.0);
+    // outColor = texture(u_image, v_texCoord);
 
     // apply gamma correction
     // outColor.rgb = pow(outColor.rgb, vec3(1.0/GAMMA));
