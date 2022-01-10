@@ -1,6 +1,7 @@
 import FRAGMENT_SHADER_SOURCE from './shaders/lanczos-2.glsl';
 import { inscribeToRatio } from './inscribeToRatio';
 import VERTEX_SHADER_SOURCE from './shaders/VERTEX_SHADER.glsl';
+import { createRect } from './createRect';
 
 export type VideoUpscalerProps = {
     video: HTMLVideoElement;
@@ -160,7 +161,7 @@ export class VideoUpscaler {
             gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer);
             gl.bufferData(
                 gl.ARRAY_BUFFER,
-                new Float32Array([0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]),
+                createRect({ width: 1, height: 1}),
                 gl.STATIC_DRAW,
             );
 
@@ -294,20 +295,7 @@ export class VideoUpscaler {
         gl.uniform2f(this.resolutionLocation, width, height);
         gl.bufferData(
             gl.ARRAY_BUFFER,
-            new Float32Array([
-                0,
-                0,
-                width,
-                0,
-                0,
-                height,
-                0,
-                height,
-                width,
-                0,
-                width,
-                height,
-            ]),
+            createRect({ width, height }),
             gl.STATIC_DRAW,
         );
     }
