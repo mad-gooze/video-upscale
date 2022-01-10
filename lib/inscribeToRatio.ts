@@ -12,8 +12,6 @@ export function inscribeToRatio(
     const desiredRatio = innerRect.width / innerRect.height;
     const ratio = width / height;
 
-    console.log(desiredRatio, ratio, Math.abs(desiredRatio - ratio));
-
     if (Math.abs(desiredRatio - ratio) < 0.005) {
         return outerRect;
     }
