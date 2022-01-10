@@ -1,7 +1,5 @@
 import RESAMPLE_SHADER_SOURCE from './shaders/lanczos-2.glsl';
-import SHARPEN_SHADER_SOURCE from './shaders/FidelityFX-CAS.glsl';
-import INVERT_SHADER_SOURCE from './shaders/invert.glsl';
-import GRAYSCALE_SHADER_SOURCE from './shaders/grayscale.glsl';
+import SHARPEN_SHADER_SOURCE from './shaders/CAS.glsl';
 import { inscribeToRatio } from './inscribeToRatio';
 import VERTEX_SHADER_SOURCE from './shaders/VERTEX_SHADER.glsl';
 import { createRect } from './createRect';
