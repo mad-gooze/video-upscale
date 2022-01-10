@@ -1,4 +1,4 @@
-import RESAMPLE_SHADER_SOURCE from './shaders/lanczos-2.glsl';
+import RESAMPLE_SHADER_SOURCE from './shaders/LANCZOS_2.glsl';
 import SHARPEN_SHADER_SOURCE from './shaders/CAS.glsl';
 import { inscribeToRatio } from './inscribeToRatio';
 import VERTEX_SHADER_SOURCE from './shaders/VERTEX_SHADER.glsl';
@@ -50,8 +50,8 @@ export class VideoUpscaler {
     private resampleProgram: Program;
     private sharpenProgram: Program;
 
-    private frameBuffers: WebGLFramebuffer[] = [];
-    private textures: WebGLTexture[] = [];
+    private frameBuffer: WebGLFramebuffer | null = null;
+    private frameBufferTexture: WebGLTexture | null = null;
 
     private videoTexture: WebGLTexture | null;
 
@@ -78,15 +78,10 @@ export class VideoUpscaler {
             this.sharpenProgram = this.buildProgram(SHARPEN_SHADER_SOURCE);
 
             this.videoTexture = this.createTexture(gl.LINEAR);
-
-            for (let ii = 0; ii < 2; ++ii) {
-                const texture = this.createTexture(gl.NEAREST)!;
-                this.textures.push(texture);
-                const fbo = gl.createFramebuffer()!;
-                this.frameBuffers.push(fbo);
-                gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-            }
+            this.frameBufferTexture = this.createTexture(gl.NEAREST);
+            this.frameBuffer = gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.frameBufferTexture, 0);
 
             this.observer = new ResizeObserver(([{ contentRect }]) => {
                 this.saveVideoTagSize(contentRect);
@@ -199,8 +194,7 @@ export class VideoUpscaler {
         // Turn on the attribute
         gl.enableVertexAttribArray(positionAttributeLocation);
 
-        // Create a buffer and put a single pixel space rectangle in
-        // it (2 triangles)
+        // Create a buffer and put a single pixel space rectangle in it (2 triangles)
         const positionBuffer = gl.createBuffer();
         this.onDestroy(() => gl.deleteBuffer(positionBuffer));
 
@@ -355,13 +349,13 @@ export class VideoUpscaler {
         // gl.activeTexture(gl.TEXTURE0);
         // Bind it to texture unit 0' 2D bind point
 
-        gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+        gl.bindTexture(gl.TEXTURE_2D, this.frameBufferTexture);
         gl.texImage2D(
             gl.TEXTURE_2D, 0, gl.RGBA, desiredFrameSize.width, desiredFrameSize.height, 0,
             gl.RGBA, gl.UNSIGNED_BYTE, null);
 
         gl.bindTexture(gl.TEXTURE_2D, this.videoTexture);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffers[0]);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
         
         this.resampleProgram.setViewportSize(desiredFrameSize);
 
@@ -377,17 +371,9 @@ export class VideoUpscaler {
 
         this.sharpenProgram.use({ flip: true });
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+        gl.bindTexture(gl.TEXTURE_2D, this.frameBufferTexture);
         this.sharpenProgram.setViewportSize(desiredFrameSize);
 
-        // gl.texImage2D(
-        //     gl.TEXTURE_2D,
-        //     0,
-        //     gl.RGBA,
-        //     gl.RGBA,
-        //     gl.UNSIGNED_BYTE,
-        //     this.textures[0],
-        // );
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.flush();
 
