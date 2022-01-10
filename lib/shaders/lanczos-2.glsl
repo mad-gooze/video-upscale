@@ -55,14 +55,7 @@ vec3 lanczos2(sampler2D tex, vec2 coord) {
     vec3 p3 = texture(tex, vec2(tc3.x, tc12.y)).rgb * wedge.z;
     vec3 p4 = texture(tex, vec2(tc12.x, tc3.y)).rgb * wedge.w;
 
-    vec3 color = p0 + p1 + p2 + p3 + p4;
-    vec3 min_sample = max5(p0, p1, p2, p3, p4);
-    vec3 max_sample = min5(p0, p1, p2, p3, p4);
-
-    vec3 aux = color;
-	color = clamp(color, min_sample, max_sample);
-
-	return mix(aux, color, 0.8);
+    return p0 + p1 + p2 + p3 + p4;
 }
 
 
