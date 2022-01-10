@@ -60,55 +60,7 @@ export class VideoUpscaler {
             this.gl = gl;
             this.onDestroy(() => gl.getExtension('WEBGL_lose_context')!.loseContext());
 
-            const program = gl.createProgram();
-            this.onDestroy(() => gl.deleteProgram(program));
-
-            const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-            const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-            this.onDestroy(() => gl.deleteShader(vertexShader));
-            this.onDestroy(() => gl.deleteShader(fragmentShader));
-
-            if (program === null) {
-                throw new Error('Failed to create program');
-            }
-            if (vertexShader === null) {
-                throw new Error(`Failed to create vertex shader`);
-            }
-            if (fragmentShader === null) {
-                throw new Error(`Failed to create fragment shader`);
-            }
-
-            gl.shaderSource(vertexShader, VERTEX_SHADER_SOURCE);
-            gl.compileShader(vertexShader);
-            gl.shaderSource(fragmentShader, FRAGMENT_SHADER_SOURCE);
-            gl.compileShader(fragmentShader);
-            gl.attachShader(program, vertexShader);
-            gl.attachShader(program, fragmentShader);
-            gl.linkProgram(program);
-
-            // Check the link status
-            const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
-            if (!linked) {
-                // something went wrong with the link
-                const programError = gl.getProgramInfoLog(program);
-                const vertexShaderError = gl.getShaderInfoLog(vertexShader);
-                const fragmentShaderError = gl.getShaderInfoLog(fragmentShader);
-
-                gl.deleteShader(vertexShader);
-                gl.deleteShader(fragmentShader);
-                gl.deleteProgram(program);
-                let errorMessage = 'Failed to link program\n';
-                if (programError) {
-                    errorMessage += `programError: ${programError}\n`;
-                }
-                if (vertexShaderError) {
-                    errorMessage += `vertexShaderError: ${vertexShaderError}\n`;
-                }
-                if (fragmentShaderError) {
-                    errorMessage += `fragmentShaderError: ${fragmentShaderError}\n`;
-                }
-                throw new Error(errorMessage);
-            }
+            const program = this.buildProgram(FRAGMENT_SHADER_SOURCE);
 
             // look up where the vertex data needs to go.
             const positionAttributeLocation = gl.getAttribLocation(
@@ -229,6 +181,61 @@ export class VideoUpscaler {
             this.destroy();
             throw e;
         }
+    }
+
+    private buildProgram(fragmentShaderSource: string): WebGLProgram {
+        const { gl} = this;
+        const program = gl.createProgram();
+        this.onDestroy(() => gl.deleteProgram(program));
+
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        this.onDestroy(() => gl.deleteShader(vertexShader));
+        this.onDestroy(() => gl.deleteShader(fragmentShader));
+
+        if (program === null) {
+            throw new Error('Failed to create program');
+        }
+        if (vertexShader === null) {
+            throw new Error(`Failed to create vertex shader`);
+        }
+        if (fragmentShader === null) {
+            throw new Error(`Failed to create fragment shader`);
+        }
+
+        gl.shaderSource(vertexShader, VERTEX_SHADER_SOURCE);
+        gl.compileShader(vertexShader);
+        gl.shaderSource(fragmentShader, FRAGMENT_SHADER_SOURCE);
+        gl.compileShader(fragmentShader);
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+
+        // Check the link status
+        const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
+        if (!linked) {
+            // something went wrong with the link
+            const programError = gl.getProgramInfoLog(program);
+            const vertexShaderError = gl.getShaderInfoLog(vertexShader);
+            const fragmentShaderError = gl.getShaderInfoLog(fragmentShader);
+
+            gl.deleteShader(vertexShader);
+            gl.deleteShader(fragmentShader);
+            gl.deleteProgram(program);
+            let errorMessage = 'Failed to link program\n';
+            if (programError) {
+                errorMessage += `programError: ${programError}\n`;
+            }
+            if (vertexShaderError) {
+                errorMessage += `vertexShaderError: ${vertexShaderError}\n`;
+            }
+            if (fragmentShaderError) {
+                errorMessage += `fragmentShaderError: ${fragmentShaderError}\n`;
+            }
+            throw new Error(errorMessage);
+        }
+
+        return program;
     }
 
     private saveVideoTagSize({ width, height }: Pick<DOMRect, 'width' | 'height'>): void {
