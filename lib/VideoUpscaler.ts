@@ -88,7 +88,9 @@ export class VideoUpscaler {
                 gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
             }
 
-            this.observer = new ResizeObserver(([{ contentRect }]) => this.saveVideoTagSize(contentRect));
+            this.observer = new ResizeObserver(([{ contentRect }]) => {
+                this.saveVideoTagSize(contentRect);
+            });
             this.observer.observe(video);
             this.onDestroy(() => {
                 this.observer.disconnect();

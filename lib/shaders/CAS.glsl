@@ -6,38 +6,60 @@ uniform sampler2D u_image;
 in vec2 v_texCoord;
 out vec4 outColor;
 
+float luma(vec3 color) {
+  return dot(color.rgb, vec3(0.299, 0.587, 0.114));
+}
+
 vec4 CAS(sampler2D tex, vec2 coord) {
     vec2 texSize = vec2(textureSize(tex, 0));
     vec4 col = texture(tex, coord);
 
-    float max_g = col.g;
-    float min_g = col.g;
+    float max_l = col.g;
+    float min_l = col.g;
+    float l;
     vec4 offset = vec4(1, 0, 1, -1) / texSize.xxyy;
     vec3 colw;
+
     vec3 col1 = texture(tex, coord + offset.yw).rgb;
-    max_g = max(max_g, col1.g);
-    min_g = min(min_g, col1.g);
+    vec3 min_sample = col1;
+	vec3 max_sample = col1;
+    l = luma(col1);
+    max_l = max(max_l, l);
+    min_l = min(min_l, l);
     colw = col1;
+
     col1 = texture(tex, coord + offset.xy).rgb;
-    max_g = max(max_g, col1.g);
-    min_g = min(min_g, col1.g);
+    min_sample = min(min_sample, col1);
+    max_sample = max(max_sample, col1);
+    l = luma(col1);
+    max_l = max(max_l, l);
+    min_l = min(min_l, l);
     colw += col1;
+
     col1 = texture(tex, coord + offset.yz).rgb;
-    max_g = max(max_g, col1.g);
-    min_g = min(min_g, col1.g);
+    min_sample = min(min_sample, col1);
+    max_sample = max(max_sample, col1);
+    l = luma(col1);
+    max_l = max(max_l, l);
+    min_l = min(min_l, l);
     colw += col1;
+
     col1 = texture(tex, coord - offset.xy).rgb;
-    max_g = max(max_g, col1.g);
-    min_g = min(min_g, col1.g);
+    min_sample = min(min_sample, col1);
+    max_sample = max(max_sample, col1);
+    l = luma(col1);
+    max_l = max(max_l, l);
+    min_l = min(min_l, l);
     colw += col1;
-    float d_min_g = min_g;
-    float d_max_g = 1.0 - max_g;
+
+    float d_min_l = min_l;
+    float d_max_l = 1.0 - max_l;
     float A;
-    max_g = max(0.0, max_g); 
-    if (d_max_g < d_min_g) {
-        A = d_max_g / max_g;
+    max_l = max(0.0, max_l); 
+    if (d_max_l < d_min_l) {
+        A = d_max_l / max_l;
     } else {
-        A = d_min_g / max_g;
+        A = d_min_l / max_l;
     }
     A = -0.2 * max(sqrt(A), 0.0);
 
