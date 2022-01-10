@@ -1,5 +1,7 @@
 import RESAMPLE_SHADER_SOURCE from './shaders/lanczos-2.glsl';
-import SHARPEN_SHADER_SOURCE from './shaders/invert.glsl';
+import SHARPEN_SHADER_SOURCE from './shaders/FidelityFX-CAS.glsl';
+import INVERT_SHADER_SOURCE from './shaders/invert.glsl';
+import GRAYSCALE_SHADER_SOURCE from './shaders/grayscale.glsl';
 import { inscribeToRatio } from './inscribeToRatio';
 import VERTEX_SHADER_SOURCE from './shaders/VERTEX_SHADER.glsl';
 import { createRect } from './createRect';
@@ -14,9 +16,9 @@ export type VideoUpscalerProps = {
 };
 
 type Program = {
-    webGLProgram: WebGLProgram;
+    program: WebGLProgram;
     setViewportSize: (size: Pick<DOMRect, 'width' | 'height'>) => void;
-    use: VoidFunction;
+    use: (params: { flip: boolean }) => void;
 }
 
 const noop = () => undefined;
@@ -50,6 +52,11 @@ export class VideoUpscaler {
     private resampleProgram: Program;
     private sharpenProgram: Program;
 
+    private frameBuffers: WebGLFramebuffer[] = [];
+    private textures: WebGLTexture[] = [];
+
+    private videoTexture: WebGLTexture | null;
+
     constructor({ video, canvas, onFrameRendered = noop, targetFPS = DEFAULT_TARGET_FPS, onFPSDrop = noop, fpsRatio = DEFAULT_FPS_RATIO }: VideoUpscalerProps) {
         try {
             this.video = video;
@@ -69,8 +76,19 @@ export class VideoUpscaler {
             this.gl = gl;
             this.onDestroy(() => gl.getExtension('WEBGL_lose_context')!.loseContext());
 
-           this.resampleProgram = this.buildProgram(RESAMPLE_SHADER_SOURCE);
-           this.sharpenProgram = this.buildProgram(SHARPEN_SHADER_SOURCE);
+            this.resampleProgram = this.buildProgram(RESAMPLE_SHADER_SOURCE);
+            this.sharpenProgram = this.buildProgram(SHARPEN_SHADER_SOURCE);
+
+            this.videoTexture = this.createTexture(gl.LINEAR);
+
+            for (let ii = 0; ii < 2; ++ii) {
+                const texture = this.createTexture(gl.NEAREST)!;
+                this.textures.push(texture);
+                const fbo = gl.createFramebuffer()!;
+                this.frameBuffers.push(fbo);
+                gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+            }
 
             this.observer = new ResizeObserver(([{ contentRect }]) => this.saveVideoTagSize(contentRect));
             this.observer.observe(video);
@@ -96,15 +114,15 @@ export class VideoUpscaler {
 
     private buildProgram(fragmentShaderSource: string): Program {
         const { gl } = this;
-        const webGLProgram = gl.createProgram();
-        this.onDestroy(() => gl.deleteProgram(webGLProgram));
+        const program = gl.createProgram();
+        this.onDestroy(() => gl.deleteProgram(program));
 
         const vertexShader = gl.createShader(gl.VERTEX_SHADER);
         const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
         this.onDestroy(() => gl.deleteShader(vertexShader));
         this.onDestroy(() => gl.deleteShader(fragmentShader));
 
-        if (webGLProgram === null) {
+        if (program === null) {
             throw new Error('Failed to create program');
         }
         if (vertexShader === null) {
@@ -116,23 +134,23 @@ export class VideoUpscaler {
 
         gl.shaderSource(vertexShader, VERTEX_SHADER_SOURCE);
         gl.compileShader(vertexShader);
-        gl.shaderSource(fragmentShader, RESAMPLE_SHADER_SOURCE);
+        gl.shaderSource(fragmentShader, fragmentShaderSource);
         gl.compileShader(fragmentShader);
-        gl.attachShader(webGLProgram, vertexShader);
-        gl.attachShader(webGLProgram, fragmentShader);
-        gl.linkProgram(webGLProgram);
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
 
         // Check the link status
-        const linked = gl.getProgramParameter(webGLProgram, gl.LINK_STATUS);
+        const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
         if (!linked) {
             // something went wrong with the link
-            const programError = gl.getProgramInfoLog(webGLProgram);
+            const programError = gl.getProgramInfoLog(program);
             const vertexShaderError = gl.getShaderInfoLog(vertexShader);
             const fragmentShaderError = gl.getShaderInfoLog(fragmentShader);
 
             gl.deleteShader(vertexShader);
             gl.deleteShader(fragmentShader);
-            gl.deleteProgram(webGLProgram);
+            gl.deleteProgram(program);
             let errorMessage = 'Failed to link program\n';
             if (programError) {
                 errorMessage += `programError: ${programError}\n`;
@@ -147,7 +165,7 @@ export class VideoUpscaler {
         }
 
         const texCoordAttributeLocation = gl.getAttribLocation(
-            webGLProgram,
+            program,
             'a_texCoord',
         );
         // provide texture coordinates for the rectangle.
@@ -175,7 +193,7 @@ export class VideoUpscaler {
 
         // look up where the vertex data needs to go.
         const positionAttributeLocation = gl.getAttribLocation(
-            webGLProgram,
+            program,
             'a_position',
         );
         // Turn on the attribute
@@ -186,42 +204,23 @@ export class VideoUpscaler {
         const positionBuffer = gl.createBuffer();
         this.onDestroy(() => gl.deleteBuffer(positionBuffer));
 
-        // Create a texture.
-        const texture = gl.createTexture();
-        this.onDestroy(() => gl.deleteTexture(texture));
-
-        // make unit 0 the active texture uint
-        // (ie, the unit all other texture commands will affect
-        gl.activeTexture(gl.TEXTURE0);
-
-        // Bind it to texture unit 0' 2D bind point
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        // Set the parameters so we don't need mips and so we're not filtering
-        // and we don't repeat at the edges
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
         const resolutionLocation = gl.getUniformLocation(
-            webGLProgram,
+            program,
             'u_resolution',
         );
         let viewportWidth = 0;
         let viewportHeight = 0;
 
         const setViewportSize = ({ width, height }: Pick<DOMRect, 'width' | 'height'>) => {
+            gl.viewport(0, 0, width, height);
+            gl.uniform2f(resolutionLocation, width, height);
+
             if (viewportWidth === width && viewportHeight === height) {
                 return;
             }
-            console.log('setViewportSize', { width, height });
             viewportWidth = width;
             viewportHeight = height;
-            gl.viewport(0, 0, width, height);
-            // Pass in the canvas resolution so we can convert from pixels to clip space in the shader
-            gl.uniform2f(resolutionLocation, width, height);
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
             gl.bufferData(
                 gl.ARRAY_BUFFER,
                 createRect({ width, height }),
@@ -229,8 +228,9 @@ export class VideoUpscaler {
             );
         };
 
-        const use = () => {
-            gl.useProgram(webGLProgram);
+        const flipYLocation = gl.getUniformLocation(program, "u_flipY");
+        const use = ({ flip }: { flip: boolean }) => {
+            gl.useProgram(program);
             gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
             gl.vertexAttribPointer(
                 positionAttributeLocation,
@@ -239,14 +239,29 @@ export class VideoUpscaler {
                 false,
                 0,
                 0,
-            );    
-        }
+            );
+            gl.uniform1f(flipYLocation, flip ? -1 : 1);
+        };
 
-        return { 
-            webGLProgram, 
+        return {
+            program,
             setViewportSize,
             use,
         };
+    }
+
+    private createTexture(textureFilter: GLenum): WebGLTexture | null {
+        const { gl } = this;
+        const texture = gl.createTexture();
+        this.onDestroy(() => gl.deleteTexture(texture));
+
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, textureFilter);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, textureFilter);
+
+        return texture;
     }
 
     private saveVideoTagSize({ width, height }: Pick<DOMRect, 'width' | 'height'>): void {
@@ -335,7 +350,19 @@ export class VideoUpscaler {
         );
 
         this.setCanvasSize(desiredFrameSize);
-        this.resampleProgram.use();
+
+        this.resampleProgram.use({ flip: false });
+        // gl.activeTexture(gl.TEXTURE0);
+        // Bind it to texture unit 0' 2D bind point
+
+        gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+        gl.texImage2D(
+            gl.TEXTURE_2D, 0, gl.RGBA, desiredFrameSize.width, desiredFrameSize.height, 0,
+            gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        gl.bindTexture(gl.TEXTURE_2D, this.videoTexture);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffers[0]);
+        
         this.resampleProgram.setViewportSize(desiredFrameSize);
 
         gl.texImage2D(
@@ -347,8 +374,22 @@ export class VideoUpscaler {
             video,
         );
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-        gl.flush();
 
+        this.sharpenProgram.use({ flip: true });
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindTexture(gl.TEXTURE_2D, this.textures[0]);
+        this.sharpenProgram.setViewportSize(desiredFrameSize);
+
+        // gl.texImage2D(
+        //     gl.TEXTURE_2D,
+        //     0,
+        //     gl.RGBA,
+        //     gl.RGBA,
+        //     gl.UNSIGNED_BYTE,
+        //     this.textures[0],
+        // );
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        gl.flush();
 
         this.showCanvas();
 
