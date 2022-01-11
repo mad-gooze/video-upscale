@@ -141,7 +141,9 @@ export class VideoUpscaler {
             // something went wrong with the link
             const programError = gl.getProgramInfoLog(program);
             const vertexShaderError = gl.getShaderInfoLog(vertexShader);
+            console.log({ vertexShaderError });
             const fragmentShaderError = gl.getShaderInfoLog(fragmentShader);
+            console.log({ fragmentShaderError });
 
             gl.deleteShader(vertexShader);
             gl.deleteShader(fragmentShader);
@@ -151,10 +153,10 @@ export class VideoUpscaler {
                 errorMessage += `programError: ${programError}\n`;
             }
             if (vertexShaderError) {
-                errorMessage += `vertexShaderError: ${vertexShaderError}\n`;
+                errorMessage += `vertex shader error: ${vertexShaderError}\n`;
             }
             if (fragmentShaderError) {
-                errorMessage += `fragmentShaderError: ${fragmentShaderError}\n`;
+                errorMessage += `fragment shader error: ${fragmentShaderError}\n`;
             }
             throw new Error(errorMessage);
         }
@@ -345,7 +347,7 @@ export class VideoUpscaler {
 
         this.setCanvasSize(desiredFrameSize);
 
-        this.resampleProgram.use({ flip: false });
+        this.resampleProgram.use({ flip: true });
         // gl.activeTexture(gl.TEXTURE0);
         // Bind it to texture unit 0' 2D bind point
 
@@ -369,7 +371,7 @@ export class VideoUpscaler {
         );
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        this.sharpenProgram.use({ flip: true });
+        this.sharpenProgram.use({ flip: false });
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.bindTexture(gl.TEXTURE_2D, this.frameBufferTexture);
         this.sharpenProgram.setViewportSize(desiredFrameSize);

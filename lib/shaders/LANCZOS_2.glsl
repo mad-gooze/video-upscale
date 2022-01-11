@@ -13,18 +13,9 @@ in vec2 v_texCoord;
 // we need to declare an output for the fragment shader
 out vec4 outColor;
 
-vec3 min5(vec3 a, vec3 b, vec3 c, vec3 d, vec3 e) {
-    return min(a, min(b, min(c, min(d, e))));
-}
-vec3 max5(vec3 a, vec3 b, vec3 c, vec3 d, vec3 e) {
-    return max(a, max(b, max(c, max(d, e))));
-}
 
-
-vec3 lanczos2(sampler2D tex, vec2 coord) {
+vec4 lanczos2(sampler2D tex, vec2 coord) {
     vec2 texSize = vec2(textureSize(tex, 0));
-
-    // vec2 step = 1.0 / texSize;
 
     /// Scale constants
     vec2 scale = 1. / texSize;
@@ -49,21 +40,21 @@ vec3 lanczos2(sampler2D tex, vec2 coord) {
     vec2 tc0 = scale.xy * (src_centre - 1.);
     vec2 tc3 = scale.xy * (src_centre + 2.);
     
-    vec3 p0 = texture(tex, vec2(tc12.x, tc0.y)).rgb * wedge.y;
-    vec3 p1 = texture(tex, vec2(tc0.x, tc12.y)).rgb * wedge.x;
-    vec3 p2 = texture(tex, tc12.xy).rgb * (w12.x * w12.y);
-    vec3 p3 = texture(tex, vec2(tc3.x, tc12.y)).rgb * wedge.z;
-    vec3 p4 = texture(tex, vec2(tc12.x, tc3.y)).rgb * wedge.w;
+    float sum = wedge.x + wedge.y + wedge.z + wedge.w + w12.x * w12.y;    
+    wedge /= sum;
 
-    return p0 + p1 + p2 + p3 + p4;
+    return vec4(
+        texture(tex, vec2(tc12.x, tc0.y)).rgb * wedge.y +
+        texture(tex, vec2(tc0.x, tc12.y)).rgb * wedge.x +
+        texture(tex, tc12.xy).rgb * (w12.x * w12.y / sum) +
+        texture(tex, vec2(tc3.x, tc12.y)).rgb * wedge.z +
+        texture(tex, vec2(tc12.x, tc3.y)).rgb * wedge.w,
+        1.0
+    );
 }
 
 
-// @define GAMMA 1.11
 void main() {
     // outColor = texture(u_image, v_texCoord);
-    outColor = vec4(lanczos2(u_image, v_texCoord), 1.0);
-
-    // apply gamma correction
-    // outColor.rgb = pow(outColor.rgb, vec3(1.0/GAMMA));
+    outColor = lanczos2(u_image, v_texCoord);
 }

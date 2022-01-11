@@ -14,39 +14,32 @@ vec4 CAS(sampler2D tex, vec2 coord) {
     vec2 texSize = vec2(textureSize(tex, 0));
     vec4 col = texture(tex, coord);
 
-    float max_l = col.g;
-    float min_l = col.g;
-    float l;
+    float l = luma(col.rgb);
+    float max_l = l;
+    float min_l = l;
+
     vec4 offset = vec4(1, 0, 1, -1) / texSize.xxyy;
     vec3 colw;
 
     vec3 col1 = texture(tex, coord + offset.yw).rgb;
-    vec3 min_sample = col1;
-	vec3 max_sample = col1;
     l = luma(col1);
     max_l = max(max_l, l);
     min_l = min(min_l, l);
     colw = col1;
 
     col1 = texture(tex, coord + offset.xy).rgb;
-    min_sample = min(min_sample, col1);
-    max_sample = max(max_sample, col1);
     l = luma(col1);
     max_l = max(max_l, l);
     min_l = min(min_l, l);
     colw += col1;
 
     col1 = texture(tex, coord + offset.yz).rgb;
-    min_sample = min(min_sample, col1);
-    max_sample = max(max_sample, col1);
     l = luma(col1);
     max_l = max(max_l, l);
     min_l = min(min_l, l);
     colw += col1;
 
     col1 = texture(tex, coord - offset.xy).rgb;
-    min_sample = min(min_sample, col1);
-    max_sample = max(max_sample, col1);
     l = luma(col1);
     max_l = max(max_l, l);
     min_l = min(min_l, l);
@@ -64,7 +57,7 @@ vec4 CAS(sampler2D tex, vec2 coord) {
     A = -0.2 * max(sqrt(A), 0.0);
 
     vec3 color = (col.rgb + colw * A) / (1.+4.*A);
-    return vec4(color, col.a);
+    return vec4(color, 1.0);
 }
 
 void main() {
