@@ -13,6 +13,7 @@ export function inscribeToRatio(
     const ratio = width / height;
 
     if (Math.abs(desiredRatio - ratio) < 0.005) {
+        // if desired ratio is close to current, use use outer rect as desired size to prevent upscale issues
         return outerRect;
     }
 
@@ -20,12 +21,12 @@ export function inscribeToRatio(
         // inscribe horizontally
         return {
             width,
-            height: Math.round(width / desiredRatio),
+            height: Math.ceil(width / desiredRatio),
         };
     }
     // inscribe vertically
     return {
-        width: Math.round(height * desiredRatio),
+        width: Math.ceil(height * desiredRatio),
         height,
     };
 }
