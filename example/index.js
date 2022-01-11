@@ -36,6 +36,13 @@ canvas.onmousedown = () => {
 };
 
 
+canvas.ontouchstart = () => {
+    canvas.style.opacity = 0;
+    document.documentElement.ontouchend = () =>
+        (canvas.style.opacity = 0.999999);
+};
+
+
 document.getElementById('reverseBtn').onclick = () => {
     video.currentTime -= 5;
 };
