@@ -1,7 +1,7 @@
-import RESAMPLE_SHADER_SOURCE from './shaders/LANCZOS_2.glsl';
+import RESAMPLE_SHADER_SOURCE from './shaders/lanczos.glsl';
 import SHARPEN_SHADER_SOURCE from './shaders/CAS.glsl';
 import { inscribeToRatio } from './inscribeToRatio';
-import VERTEX_SHADER_SOURCE from './shaders/VERTEX_SHADER.glsl';
+import VERTEX_SHADER_SOURCE from './shaders/vertexShader.glsl';
 import { createRect } from './createRect';
 
 export type VideoUpscalerProps = {

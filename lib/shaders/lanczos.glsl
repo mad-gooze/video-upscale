@@ -14,7 +14,7 @@ in vec2 v_texCoord;
 out vec4 outColor;
 
 
-vec4 lanczos2(sampler2D tex, vec2 coord) {
+vec4 lanczos(sampler2D tex, vec2 coord) {
     vec2 texSize = vec2(textureSize(tex, 0));
 
     /// Scale constants
@@ -56,5 +56,5 @@ vec4 lanczos2(sampler2D tex, vec2 coord) {
 
 void main() {
     // outColor = texture(u_image, v_texCoord);
-    outColor = lanczos2(u_image, v_texCoord);
+    outColor = lanczos(u_image, v_texCoord);
 }
