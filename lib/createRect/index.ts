@@ -1,4 +1,6 @@
-export function createRect({width, height}: Pick<DOMRect, 'width' | 'height'>): Float32Array {
+import { Rect } from "../Rect";
+
+export function createRect({width, height}: Rect): Float32Array {
     return Float32Array.of(
         0,
         0,

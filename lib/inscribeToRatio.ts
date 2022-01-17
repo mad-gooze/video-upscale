@@ -1,11 +1,13 @@
+import { Rect } from "./Rect";
+
 /**
  * Returns rect size with a given ratio inscribed in a given rect
  *
  * @internal
  */
 export function inscribeToRatio(
-    outerRect: Pick<DOMRect, 'width' | 'height'>,
-    innerRect: Pick<DOMRect, 'width' | 'height'>,
+    outerRect: Rect,
+    innerRect: Rect,
 ) {
     const { width, height } = outerRect;
     

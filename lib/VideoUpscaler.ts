@@ -3,6 +3,7 @@ import SHARPEN_SHADER_SOURCE from './shaders/CAS.glsl';
 import { inscribeToRatio } from './inscribeToRatio';
 import VERTEX_SHADER_SOURCE from './shaders/vertexShader.glsl';
 import { createRect } from './createRect';
+import { Rect } from './Rect';
 
 export type VideoUpscalerProps = {
     video: HTMLVideoElement;
@@ -15,7 +16,7 @@ export type VideoUpscalerProps = {
 
 type Program = {
     program: WebGLProgram;
-    setViewportSize: (size: Pick<DOMRect, 'width' | 'height'>) => void;
+    setViewportSize: (size: Rect) => void;
     use: (params: { flip: boolean }) => void;
 }
 
@@ -23,6 +24,7 @@ const noop = () => undefined;
 
 const DEFAULT_TARGET_FPS = 30;
 const DEFAULT_FPS_RATIO = 0.8;
+
 export class VideoUpscaler {
     private gl: WebGL2RenderingContext;
 
@@ -207,7 +209,7 @@ export class VideoUpscaler {
         let viewportWidth = 0;
         let viewportHeight = 0;
 
-        const setViewportSize = ({ width, height }: Pick<DOMRect, 'width' | 'height'>) => {
+        const setViewportSize = ({ width, height }: Rect) => {
             gl.viewport(0, 0, width, height);
             gl.uniform2f(resolutionLocation, width, height);
 
@@ -260,12 +262,12 @@ export class VideoUpscaler {
         return texture;
     }
 
-    private saveVideoTagSize({ width, height }: Pick<DOMRect, 'width' | 'height'>): void {
+    private saveVideoTagSize({ width, height }: Rect): void {
         this.videoTagWidth = Math.round(width * devicePixelRatio);
         this.videoTagHeight = Math.round(height * devicePixelRatio);
     }
 
-    private getVideoTagSize(): Pick<DOMRect, 'width' | 'height'> {
+    private getVideoTagSize(): Rect {
         if (this.videoTagWidth === undefined || this.videoTagHeight === undefined) {
             this.saveVideoTagSize(this.video.getBoundingClientRect());
         }
@@ -303,7 +305,7 @@ export class VideoUpscaler {
     private setCanvasSize({
         width,
         height,
-    }: Pick<DOMRect, 'width' | 'height'>): void {
+    }: Rect): void {
         const { canvas } = this;
         if (canvas.width !== width) {
             canvas.width = width;
@@ -314,7 +316,7 @@ export class VideoUpscaler {
     }
 
 
-    private getVideoFrameSize(frameMetadata: VideoFrameMetadata | undefined): Pick<DOMRect, 'width' | 'height'> | undefined {
+    private getVideoFrameSize(frameMetadata: VideoFrameMetadata | undefined): Rect | undefined {
         if (frameMetadata !== undefined) {
             const { width, height } = frameMetadata;
             return { width, height };
