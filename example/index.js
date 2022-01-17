@@ -29,17 +29,31 @@ upscaler.enable();
 
 video.play();
 
+document.documentElement.onkeydown = (e) => {
+    if (e.key !== ' ') {
+        return;
+    }
+    canvas.style.display = 'none';
+    document.documentElement.onkeyup = () => {
+        if (e.key !== ' ') {
+            return;
+        }
+        canvas.style.display = 'block';
+    }
+};
+
+
 canvas.onmousedown = () => {
-    canvas.style.opacity = 0;
+    canvas.style.display = 'none';
     document.documentElement.onmouseup = () =>
-        (canvas.style.opacity = 0.999999);
+        (canvas.style.display = 'block');
 };
 
 
 canvas.ontouchstart = () => {
-    canvas.style.opacity = 0;
+    canvas.style.display = 'none';
     document.documentElement.ontouchend = () =>
-        (canvas.style.opacity = 0.999999);
+        (canvas.style.display = 'block');
 };
 
 
