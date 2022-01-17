@@ -6,8 +6,10 @@ uniform sampler2D u_image;
 in vec2 v_texCoord;
 out vec4 outColor;
 
+uniform float u_GAMMA;
+
 float luma(vec3 color) {
-  return dot(color.rgb, vec3(0.299, 0.587, 0.114));
+    return dot(color.rgb, vec3(0.299, 0.587, 0.114));
 }
 
 vec4 CAS(sampler2D tex, vec2 coord) {
@@ -62,4 +64,6 @@ vec4 CAS(sampler2D tex, vec2 coord) {
 
 void main() {
     outColor = CAS(u_image, v_texCoord);
+    // apply gamma correction
+    outColor.rgb = pow(outColor.rgb, vec3(1.0 / u_GAMMA));
 }

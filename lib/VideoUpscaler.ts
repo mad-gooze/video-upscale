@@ -13,18 +13,21 @@ export type VideoUpscalerProps = {
     onFPSDrop?: (params: { fps: number; targetFPS: number }) => any;
     targetFPS?: number;
     fpsRatio?: number;
+    gamma?: number;
 };
 
 type Program = {
     program: WebGLProgram;
     setViewportSize: (size: Rect) => void;
     use: (params: { flip: boolean }) => void;
+    setUniform1f: (uniformName: string, value: number) => void;
 };
 
 const noop = () => undefined;
 
 const DEFAULT_TARGET_FPS = 30;
 const DEFAULT_FPS_RATIO = 0.8;
+const DEFAULT_GAMMA = 1;
 
 export class VideoUpscaler {
     private gl: WebGL2RenderingContext;
@@ -40,6 +43,7 @@ export class VideoUpscaler {
 
     private canvasHidden: boolean | undefined;
 
+    private gamma: number;
     private targetFPS: number;
     private fps = 0;
     private prevFrameRenderTime: DOMHighResTimeStamp = -1;
@@ -64,6 +68,7 @@ export class VideoUpscaler {
         targetFPS = DEFAULT_TARGET_FPS,
         onFPSDrop = noop,
         fpsRatio = DEFAULT_FPS_RATIO,
+        gamma = DEFAULT_GAMMA,
     }: VideoUpscalerProps) {
         try {
             this.video = video;
@@ -72,6 +77,7 @@ export class VideoUpscaler {
             this.targetFPS = targetFPS;
             this.onFPSDrop = onFPSDrop;
             this.fpsRatio = fpsRatio;
+            this.gamma = gamma;
 
             this.hideCanvas();
 
@@ -258,9 +264,15 @@ export class VideoUpscaler {
             gl.uniform1f(flipYLocation, flip ? -1 : 1);
         };
 
+        const setUniform1f = (uniformName: string, value: number) => {
+            const location = gl.getUniformLocation(program, uniformName);
+            gl.uniform1f(location, value);
+        }
+
         return {
             program,
             setViewportSize,
+            setUniform1f,
             use,
         };
     }
@@ -381,6 +393,7 @@ export class VideoUpscaler {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
         this.sharpenProgram.use({ flip: false });
+        this.sharpenProgram.setUniform1f('u_GAMMA', this.gamma);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.bindTexture(gl.TEXTURE_2D, this.frameBufferTexture);
         this.sharpenProgram.setViewportSize(desiredFrameSize);
