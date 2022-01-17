@@ -4,6 +4,7 @@ import { inscribeToRatio } from './inscribeToRatio';
 import VERTEX_SHADER_SOURCE from './shaders/vertexShader.glsl';
 import { createRect } from './createRect';
 import { Rect } from './Rect';
+import { getDevicePixelContentBoxSize } from './getDevicePixelContentBoxSize';
 
 export type VideoUpscalerProps = {
     video: HTMLVideoElement;
@@ -29,8 +30,7 @@ export class VideoUpscaler {
     private gl: WebGL2RenderingContext;
 
     private observer: ResizeObserver;
-    private videoTagWidth: number | undefined;
-    private videoTagHeight: number | undefined;
+    private videoTagSize: Rect | undefined;
 
     private nextRFCHandle: number | undefined;
 
@@ -85,10 +85,10 @@ export class VideoUpscaler {
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.frameBufferTexture, 0);
 
-            this.observer = new ResizeObserver(([{ contentRect }]) => {
-                this.saveVideoTagSize(contentRect);
+            this.observer = new ResizeObserver(([entry]) => {
+                this.videoTagSize = getDevicePixelContentBoxSize(entry);
             });
-            this.observer.observe(video);
+            (this.observer as any).observe(video, { box: ['device-pixel-content-box'] });
             this.onDestroy(() => {
                 this.observer.disconnect();
             })
@@ -262,22 +262,6 @@ export class VideoUpscaler {
         return texture;
     }
 
-    private saveVideoTagSize({ width, height }: Rect): void {
-        this.videoTagWidth = Math.round(width * devicePixelRatio);
-        this.videoTagHeight = Math.round(height * devicePixelRatio);
-    }
-
-    private getVideoTagSize(): Rect {
-        if (this.videoTagWidth === undefined || this.videoTagHeight === undefined) {
-            this.saveVideoTagSize(this.video.getBoundingClientRect());
-        }
-
-        return {
-            width: this.videoTagWidth!,
-            height: this.videoTagHeight!,
-        };
-    }
-
     private clearFPSCounter(): void {
         this.fps = this.targetFPS;
         this.prevFrameRenderTime = -1;
@@ -332,9 +316,9 @@ export class VideoUpscaler {
     private renderFrame = (now?: DOMHighResTimeStamp, frameMetadata?: VideoFrameMetadata) => {
         this.cancelNextRender();
 
-        const { video, gl } = this;
+        const { video, gl, videoTagSize } = this;
         const videoFrameSize = this.getVideoFrameSize(frameMetadata);
-        if (videoFrameSize === undefined) {
+        if (videoFrameSize === undefined || videoTagSize === undefined) {
             this.hideCanvas();
             this.planNextRender();
             return;
@@ -343,7 +327,7 @@ export class VideoUpscaler {
         now = now || performance.now();
 
         const desiredFrameSize = inscribeToRatio(
-            this.getVideoTagSize(),
+            videoTagSize,
             videoFrameSize,
         );
 
@@ -360,7 +344,7 @@ export class VideoUpscaler {
 
         gl.bindTexture(gl.TEXTURE_2D, this.videoTexture);
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-        
+
         this.resampleProgram.setViewportSize(desiredFrameSize);
 
         gl.texImage2D(
