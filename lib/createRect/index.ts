@@ -1,6 +1,6 @@
-import { Rect } from "../Rect";
+import type { Rect } from '../Rect';
 
-export function createRect({width, height}: Rect): Float32Array {
+export function createRect({ width, height }: Rect): Float32Array {
     return Float32Array.of(
         0,
         0,

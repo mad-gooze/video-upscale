@@ -1,4 +1,4 @@
-import { Rect } from "../Rect";
+import type { Rect } from '../Rect';
 
 export function getDevicePixelContentBoxSize(entry: ResizeObserverEntry): Rect {
     let width: number;
@@ -14,6 +14,6 @@ export function getDevicePixelContentBoxSize(entry: ResizeObserverEntry): Rect {
         width = Math.round(contentRect.width * devicePixelRatio);
         height = Math.round(contentRect.height * devicePixelRatio);
     }
-    
+
     return { width, height };
 }

@@ -39,23 +39,19 @@ document.documentElement.onkeydown = (e) => {
             return;
         }
         canvas.style.display = 'block';
-    }
+    };
 };
-
 
 canvas.onmousedown = () => {
     canvas.style.display = 'none';
-    document.documentElement.onmouseup = () =>
-        (canvas.style.display = 'block');
+    document.documentElement.onmouseup = () => (canvas.style.display = 'block');
 };
-
 
 canvas.ontouchstart = () => {
     canvas.style.display = 'none';
     document.documentElement.ontouchend = () =>
         (canvas.style.display = 'block');
 };
-
 
 document.getElementById('reverseBtn').onclick = () => {
     video.currentTime -= 5;

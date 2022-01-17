@@ -1,16 +1,13 @@
-import { Rect } from "./Rect";
+import type { Rect } from './Rect';
 
 /**
  * Returns rect size with a given ratio inscribed in a given rect
  *
  * @internal
  */
-export function inscribeToRatio(
-    outerRect: Rect,
-    innerRect: Rect,
-) {
+export function inscribeToRatio(outerRect: Rect, innerRect: Rect) {
     const { width, height } = outerRect;
-    
+
     const desiredRatio = innerRect.width / innerRect.height;
     const ratio = width / height;
 

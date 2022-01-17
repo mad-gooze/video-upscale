@@ -3,14 +3,14 @@ import SHARPEN_SHADER_SOURCE from './shaders/CAS.glsl';
 import { inscribeToRatio } from './inscribeToRatio';
 import VERTEX_SHADER_SOURCE from './shaders/vertexShader.glsl';
 import { createRect } from './createRect';
-import { Rect } from './Rect';
+import type { Rect } from './Rect';
 import { getDevicePixelContentBoxSize } from './getDevicePixelContentBoxSize';
 
 export type VideoUpscalerProps = {
     video: HTMLVideoElement;
     canvas: HTMLCanvasElement;
     onFrameRendered?: (params: { fps: number }) => any;
-    onFPSDrop?: (params: { fps: number, targetFPS: number }) => any;
+    onFPSDrop?: (params: { fps: number; targetFPS: number }) => any;
     targetFPS?: number;
     fpsRatio?: number;
 };
@@ -19,7 +19,7 @@ type Program = {
     program: WebGLProgram;
     setViewportSize: (size: Rect) => void;
     use: (params: { flip: boolean }) => void;
-}
+};
 
 const noop = () => undefined;
 
@@ -57,7 +57,14 @@ export class VideoUpscaler {
 
     private videoTexture: WebGLTexture | null;
 
-    constructor({ video, canvas, onFrameRendered = noop, targetFPS = DEFAULT_TARGET_FPS, onFPSDrop = noop, fpsRatio = DEFAULT_FPS_RATIO }: VideoUpscalerProps) {
+    constructor({
+        video,
+        canvas,
+        onFrameRendered = noop,
+        targetFPS = DEFAULT_TARGET_FPS,
+        onFPSDrop = noop,
+        fpsRatio = DEFAULT_FPS_RATIO,
+    }: VideoUpscalerProps) {
         try {
             this.video = video;
             this.canvas = canvas;
@@ -74,7 +81,9 @@ export class VideoUpscaler {
                 throw new Error('WebGL2 is not supported');
             }
             this.gl = gl;
-            this.onDestroy(() => gl.getExtension('WEBGL_lose_context')!.loseContext());
+            this.onDestroy(() =>
+                gl.getExtension('WEBGL_lose_context')!.loseContext(),
+            );
 
             this.resampleProgram = this.buildProgram(RESAMPLE_SHADER_SOURCE);
             this.sharpenProgram = this.buildProgram(SHARPEN_SHADER_SOURCE);
@@ -83,15 +92,23 @@ export class VideoUpscaler {
             this.frameBufferTexture = this.createTexture(gl.NEAREST);
             this.frameBuffer = gl.createFramebuffer();
             gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.frameBufferTexture, 0);
+            gl.framebufferTexture2D(
+                gl.FRAMEBUFFER,
+                gl.COLOR_ATTACHMENT0,
+                gl.TEXTURE_2D,
+                this.frameBufferTexture,
+                0,
+            );
 
             this.observer = new ResizeObserver(([entry]) => {
                 this.videoTagSize = getDevicePixelContentBoxSize(entry);
             });
-            (this.observer as any).observe(video, { box: ['device-pixel-content-box'] });
+            (this.observer as any).observe(video, {
+                box: ['device-pixel-content-box'],
+            });
             this.onDestroy(() => {
                 this.observer.disconnect();
-            })
+            });
 
             const onTimeupdate = () => {
                 if (!this.video.paused) {
@@ -102,7 +119,7 @@ export class VideoUpscaler {
             this.video.addEventListener('timeupdate', onTimeupdate);
             this.onDestroy(() => {
                 this.video.removeEventListener('timeupdate', onTimeupdate);
-            })
+            });
         } catch (e) {
             this.destroy();
             throw e;
@@ -226,7 +243,7 @@ export class VideoUpscaler {
             );
         };
 
-        const flipYLocation = gl.getUniformLocation(program, "u_flipY");
+        const flipYLocation = gl.getUniformLocation(program, 'u_flipY');
         const use = ({ flip }: { flip: boolean }) => {
             gl.useProgram(program);
             gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -286,10 +303,7 @@ export class VideoUpscaler {
         this.canvasHidden = false;
     }
 
-    private setCanvasSize({
-        width,
-        height,
-    }: Rect): void {
+    private setCanvasSize({ width, height }: Rect): void {
         const { canvas } = this;
         if (canvas.width !== width) {
             canvas.width = width;
@@ -299,8 +313,9 @@ export class VideoUpscaler {
         }
     }
 
-
-    private getVideoFrameSize(frameMetadata: VideoFrameMetadata | undefined): Rect | undefined {
+    private getVideoFrameSize(
+        frameMetadata: VideoFrameMetadata | undefined,
+    ): Rect | undefined {
         if (frameMetadata !== undefined) {
             const { width, height } = frameMetadata;
             return { width, height };
@@ -313,7 +328,10 @@ export class VideoUpscaler {
         return { width: videoWidth, height: videoHeight };
     }
 
-    private renderFrame = (now?: DOMHighResTimeStamp, frameMetadata?: VideoFrameMetadata) => {
+    private renderFrame = (
+        now?: DOMHighResTimeStamp,
+        frameMetadata?: VideoFrameMetadata,
+    ) => {
         this.cancelNextRender();
 
         const { video, gl, videoTagSize } = this;
@@ -326,10 +344,7 @@ export class VideoUpscaler {
 
         now = now || performance.now();
 
-        const desiredFrameSize = inscribeToRatio(
-            videoTagSize,
-            videoFrameSize,
-        );
+        const desiredFrameSize = inscribeToRatio(videoTagSize, videoFrameSize);
 
         this.setCanvasSize(desiredFrameSize);
 
@@ -339,8 +354,16 @@ export class VideoUpscaler {
 
         gl.bindTexture(gl.TEXTURE_2D, this.frameBufferTexture);
         gl.texImage2D(
-            gl.TEXTURE_2D, 0, gl.RGBA, desiredFrameSize.width, desiredFrameSize.height, 0,
-            gl.RGBA, gl.UNSIGNED_BYTE, null);
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            desiredFrameSize.width,
+            desiredFrameSize.height,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null,
+        );
 
         gl.bindTexture(gl.TEXTURE_2D, this.videoTexture);
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
@@ -420,7 +443,7 @@ export class VideoUpscaler {
 
         this.destroyHandlers.forEach((handler) => {
             try {
-                handler()
+                handler();
             } catch {
                 //
             }
