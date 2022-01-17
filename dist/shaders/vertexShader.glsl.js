@@ -1,0 +1,1 @@
+export default "#version 300 es\nin vec2 a_position;in vec2 a_texCoord;uniform float u_flipY;uniform vec2 u_resolution;out vec2 A;void main(){vec2 g=a_position/u_resolution;vec2 h=g*2.;vec2 i=h-1.;gl_Position=vec4(i*vec2(1,u_flipY),0,1);A=a_texCoord;}";
