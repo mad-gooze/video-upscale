@@ -1,6 +1,6 @@
 {
     "name": "video-upscale",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "description": "Upscale HTML5 Video using WebGL",
     "main": "dist/index.js",
     "scripts": {
