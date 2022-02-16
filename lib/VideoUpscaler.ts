@@ -267,7 +267,7 @@ export class VideoUpscaler {
         const setUniform1f = (uniformName: string, value: number) => {
             const location = gl.getUniformLocation(program, uniformName);
             gl.uniform1f(location, value);
-        }
+        };
 
         return {
             program,
